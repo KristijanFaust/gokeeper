@@ -1,0 +1,9 @@
+# IDE/text editors
+.idea
+
+# App
+build
+
+# Go
+*.test
+*.out
