@@ -1,22 +1,34 @@
 package server
 
 import (
-	"fmt"
+	"github.com/KristijanFaust/gokeeper/app/config"
 	"log"
 	"net/http"
+	"sync"
+	"syscall"
 )
 
-const portNumber = ":8080"
+func Run(serverDoneWaitGroup *sync.WaitGroup) *http.Server {
+	if config.ApplicationConfig == nil {
+		log.Panic("Application configuration not loaded, can not start server")
+	}
 
-func Run() {
+	portNumber := config.ApplicationConfig.Server.Port
 	log.Printf("Starting GoKeeper server on port %s", portNumber)
 
 	server := &http.Server{
-		Addr: portNumber,
+		Addr: ":" + portNumber,
 	}
 
-	err := server.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		panic(fmt.Sprintf("Server error occurred: %s", err))
-	}
+	go func() {
+		defer serverDoneWaitGroup.Done()
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			log.Printf("Server error occurred: %s", err)
+			syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+		} else {
+			log.Printf("Received shutdown signal, terminating server")
+		}
+	}()
+
+	return server
 }
