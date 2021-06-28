@@ -29,7 +29,7 @@ func TestRun(t *testing.T) {
 // Run should panic if no configuration is loaded
 func TestRunWithoutConfiguration(t *testing.T) {
 	assert.PanicsWithValue(
-		t, "Application configuration not loaded, can not start server",
+		t, "Server configuration not loaded, cannot start server",
 		func() { Run(nil) }, "Server boot should panic if no configuration is loaded",
 	)
 }

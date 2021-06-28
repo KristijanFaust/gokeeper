@@ -4,13 +4,14 @@ import (
 	"github.com/KristijanFaust/gokeeper/app/config"
 	"log"
 	"net/http"
+	"reflect"
 	"sync"
 	"syscall"
 )
 
 func Run(serverDoneWaitGroup *sync.WaitGroup) *http.Server {
-	if config.ApplicationConfig == nil {
-		log.Panic("Application configuration not loaded, can not start server")
+	if config.ApplicationConfig == nil || reflect.ValueOf(config.ApplicationConfig.Server).IsZero() {
+		log.Panic("Server configuration not loaded, cannot start server")
 	}
 
 	portNumber := config.ApplicationConfig.Server.Port
