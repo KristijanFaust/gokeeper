@@ -1,0 +1,11 @@
+version: '3'
+services:
+  gokeeper-postgres-tests:
+    container_name: gokeeper-postgres-tests
+    image: postgres:13.3-alpine
+    ports:
+      - "50000:5432"
+    environment:
+      POSTGRES_DB: gokeeper-test
+      POSTGRES_USER: gokeeperapp-test
+      POSTGRES_PASSWORD: password-test

@@ -12,6 +12,14 @@ type Config struct {
 	Server struct {
 		Port string `yaml:"port"`
 	} `yaml:"server"`
+	Datasource struct {
+		User                  string `yaml:"user"`
+		Password              string `yaml:"password"`
+		Host                  string `yaml:"host"`
+		Database              string `yaml:"database"`
+		MaxOpenConnections    int    `yaml:"max-open-connections"`
+		MaxConnectionLifetime int    `yaml:"connection-lifetime"`
+	} `yaml:"datasource"`
 }
 
 func LoadConfiguration(configPath string) {

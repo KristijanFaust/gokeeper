@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/KristijanFaust/gokeeper/app/config"
+	"github.com/KristijanFaust/gokeeper/app/database"
 	"github.com/KristijanFaust/gokeeper/app/server"
 	"github.com/KristijanFaust/gokeeper/app/utility/stdout"
 	"log"
@@ -16,6 +17,8 @@ import (
 func main() {
 	stdout.PrintApplicationBanner()
 	config.LoadConfiguration("./config.yml")
+	database.InitializeDatabaseConnection()
+	defer database.CloseDatabaseConnection()
 
 	serverDoneWaitGroup := &sync.WaitGroup{}
 	serverDoneWaitGroup.Add(1)
