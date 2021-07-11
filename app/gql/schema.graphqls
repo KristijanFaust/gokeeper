@@ -1,0 +1,35 @@
+type User {
+  id: ID!
+  email: String!
+  username: String!
+}
+
+type Password {
+  id: ID!
+  userId: ID!
+  name: String!
+  password: String!
+}
+
+input NewUser {
+  email: String!
+  username: String!
+  password: String!
+}
+
+input NewPassword {
+  userId: ID!
+  name: String!
+  password: String!
+}
+
+type Mutation {
+  createUser(input: NewUser!): User!
+  createPassword(input: NewPassword!): Password!
+
+}
+
+type Query {
+  queryUserByEmail(email: String!): User!
+  queryUserPasswords(userId: String!): [Password]!
+}

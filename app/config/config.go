@@ -9,8 +9,12 @@ import (
 var ApplicationConfig *Config
 
 type Config struct {
+	Profile struct {
+		Production bool `yaml:"production"`
+	} `yaml:"profile"`
 	Server struct {
-		Port string `yaml:"port"`
+		Hostname string `yaml:"hostname"`
+		Port     string `yaml:"port"`
 	} `yaml:"server"`
 	Datasource struct {
 		User                  string `yaml:"user"`

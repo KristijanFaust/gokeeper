@@ -57,6 +57,6 @@ func CloseDatabaseConnection() {
 		return
 	}
 
-	log.Printf("Successfully connected to database: %s at %s", Session.Name(), settings.Host)
+	log.Printf("Successfully terminated connection to database: %s at %s", Session.Name(), settings.Host)
 	Session = nil
 }

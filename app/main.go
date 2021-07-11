@@ -35,7 +35,7 @@ func main() {
 
 	serverDoneWaitGroup.Wait()
 
-	log.Printf("Application terminateted succesfully")
+	log.Println("Application terminated successfully")
 }
 
 func waitForQuitSignal() {
