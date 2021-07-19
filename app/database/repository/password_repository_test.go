@@ -1,8 +1,9 @@
-package model
+package repository
 
 import (
 	"github.com/KristijanFaust/gokeeper/app/config"
 	"github.com/KristijanFaust/gokeeper/app/database"
+	"github.com/KristijanFaust/gokeeper/app/database/model"
 	"github.com/KristijanFaust/gokeeper/app/utility/test/databaseutil"
 	"github.com/KristijanFaust/gokeeper/app/utility/test/testcontainersutil"
 	"github.com/stretchr/testify/assert"
@@ -14,6 +15,8 @@ type PasswordTestSuite struct {
 	suite.Suite
 	isDatabaseUp       bool
 	isDatabaseMigrated bool
+	userRepository     UserRepository
+	passwordRepository PasswordRepository
 }
 
 func TestPasswordSuite(t *testing.T) {
@@ -25,6 +28,8 @@ func (suite *PasswordTestSuite) SetupSuite() {
 	databaseutil.GenerateTestDatasourceConfiguration()
 	database.InitializeDatabaseConnection()
 	suite.isDatabaseMigrated = databaseutil.RunDatabaseMigrations()
+	suite.userRepository = &UserRepositoryService{}
+	suite.passwordRepository = &PasswordRepositoryService{}
 }
 
 func (suite *PasswordTestSuite) TearDownSuite() {
@@ -39,15 +44,15 @@ func (suite *PasswordTestSuite) TestInsertNewUser() {
 		suite.T().Skip("Skipping test since database container is not ready")
 	}
 
-	var user = User{Email: "testInsertPassword@test.com", Username: "testInsertPassword", Password: "testInsertPassword"}
-	userId, err := user.InsertNewUser()
+	user := &model.User{Email: "testInsertPassword@test.com", Username: "testInsertPassword", Password: "testInsertPassword"}
+	userId, err := suite.userRepository.InsertNewUser(user)
 	assert.Nil(suite.T(), err)
 
-	var newUserPassword = Password{UserId: uint64(userId.ID().(int64)), Name: "SomeApplication", Password: "password"}
-	passwordId, err := newUserPassword.InsertNewPassword()
+	var newUserPassword = &model.Password{UserId: uint64(userId.ID().(int64)), Name: "SomeApplication", Password: "password"}
+	passwordId, err := suite.passwordRepository.InsertNewPassword(newUserPassword)
 	assert.Nil(suite.T(), err)
 
-	insertedUserPassword := Password{}
+	insertedUserPassword := model.Password{}
 	err = PasswordCollection().Find("id", passwordId).One(&insertedUserPassword)
 	assert.Nil(suite.T(), err)
 
@@ -63,28 +68,28 @@ func (suite *PasswordTestSuite) TestFetchAllByUserId() {
 		suite.T().Skip("Skipping test since database container is not ready")
 	}
 
-	var testUser = User{Email: "testFetchPasswords@test.com", Username: "testFetchPasswords", Password: "testFetchPassword"}
-	testUserId, err := testUser.InsertNewUser()
+	testUser := &model.User{Email: "testFetchPasswords@test.com", Username: "testFetchPasswords", Password: "testFetchPassword"}
+	testUserId, err := suite.userRepository.InsertNewUser(testUser)
 	assert.Nil(suite.T(), err)
 
-	var testUserPassword1 = Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication1", Password: "password1"}
-	passwordId1, err := testUserPassword1.InsertNewPassword()
+	testUserPassword1 := &model.Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication1", Password: "password1"}
+	passwordId1, err := suite.passwordRepository.InsertNewPassword(testUserPassword1)
 	assert.Nil(suite.T(), err)
 
-	var testUserPassword2 = Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication2", Password: "password2"}
-	passwordId2, err := testUserPassword2.InsertNewPassword()
+	testUserPassword2 := &model.Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication2", Password: "password2"}
+	passwordId2, err := suite.passwordRepository.InsertNewPassword(testUserPassword2)
 	assert.Nil(suite.T(), err)
 
-	var additionalUser = User{Email: "additionalUser@test.com", Username: "additionalUser", Password: "additionalUser"}
-	additionalUserId, err := additionalUser.InsertNewUser()
+	additionalUser := &model.User{Email: "additionalUser@test.com", Username: "additionalUser", Password: "additionalUser"}
+	additionalUserId, err := suite.userRepository.InsertNewUser(additionalUser)
 	assert.Nil(suite.T(), err)
 
-	var additionalUserPassword = Password{UserId: uint64(additionalUserId.ID().(int64)), Name: "SomeApplication", Password: "password"}
-	_, err = additionalUserPassword.InsertNewPassword()
+	additionalUserPassword := &model.Password{UserId: uint64(additionalUserId.ID().(int64)), Name: "SomeApplication", Password: "password"}
+	_, err = suite.passwordRepository.InsertNewPassword(additionalUserPassword)
 	assert.Nil(suite.T(), err)
 
-	testUserPasswords := Passwords{}
-	testUserPasswords.FetchAllByUserId(uint64(testUserId.ID().(int64)))
+	testUserPasswords := model.Passwords{}
+	suite.passwordRepository.FetchAllByUserId(&testUserPasswords, uint64(testUserId.ID().(int64)))
 
 	assert.Equal(suite.T(), len(testUserPasswords), 2, "Should fetch exactly two passwords")
 

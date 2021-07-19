@@ -4,8 +4,9 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/KristijanFaust/gokeeper/app/config"
-	graph2 "github.com/KristijanFaust/gokeeper/app/gql"
-	generated2 "github.com/KristijanFaust/gokeeper/app/gql/generated"
+	"github.com/KristijanFaust/gokeeper/app/database/repository"
+	"github.com/KristijanFaust/gokeeper/app/gql"
+	"github.com/KristijanFaust/gokeeper/app/gql/generated"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
@@ -24,7 +25,9 @@ func Run(serverDoneWaitGroup *sync.WaitGroup) *http.Server {
 	log.Printf("Starting GoKeeper server on http://%s:%s", hostname, portNumber)
 
 	router := chi.NewRouter()
-	graphqlHandler := handler.NewDefaultServer(generated2.NewExecutableSchema(generated2.Config{Resolvers: &graph2.Resolver{}}))
+	graphqlHandler := handler.NewDefaultServer(generated.NewExecutableSchema(
+		generated.Config{Resolvers: gql.NewResolver(&repository.UserRepositoryService{}, &repository.PasswordRepositoryService{})},
+	))
 
 	if reflect.ValueOf(config.ApplicationConfig.Profile).IsZero() || !config.ApplicationConfig.Profile.Production {
 		router.Handle("/playground", playground.Handler("GraphQL playground", "/query"))

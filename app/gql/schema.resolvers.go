@@ -18,7 +18,7 @@ import (
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
 	newUser := databaseModel.User{Email: input.Email, Username: input.Username, Password: input.Password}
-	insertResult, err := newUser.InsertNewUser()
+	insertResult, err := r.userRepository.InsertNewUser(&newUser)
 	if err != nil {
 		switch errorType := err.(type) {
 		case *pq.Error:
@@ -46,7 +46,8 @@ func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPa
 	}
 	newPassword := databaseModel.Password{UserId: userId, Name: input.Name, Password: input.Password}
 
-	insertResult, err := newPassword.InsertNewPassword()
+	//insertResult, err := newPassword.InsertNewPassword()
+	insertResult, err := r.passwordRepository.InsertNewPassword(&newPassword)
 	if err != nil {
 		return nil, gqlerror.Errorf("could not create a new password")
 	}
@@ -62,7 +63,7 @@ func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPa
 
 func (r *queryResolver) QueryUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	fetchedUser := databaseModel.User{}
-	err := fetchedUser.FetchByEmail(email)
+	err := r.userRepository.FetchByEmail(&fetchedUser, email)
 	if err != nil {
 		if strings.Contains(err.Error(), "upper: no more rows in this result set") {
 			return nil, gqlerror.Errorf("user doesn't exist")
@@ -88,7 +89,7 @@ func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) (
 	var passwords []*model.Password
 	fetchedPasswords := databaseModel.Passwords{}
 
-	err = fetchedPasswords.FetchAllByUserId(userId)
+	err = r.passwordRepository.FetchAllByUserId(&fetchedPasswords, userId)
 	if err != nil {
 		return nil, gqlerror.Errorf("could not fetch user's passwords")
 	}
