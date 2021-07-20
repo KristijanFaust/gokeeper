@@ -56,10 +56,10 @@ func (suite *PasswordTestSuite) TestInsertNewUser() {
 	err = PasswordCollection().Find("id", passwordId).One(&insertedUserPassword)
 	assert.Nil(suite.T(), err)
 
-	assert.Equal(suite.T(), insertedUserPassword.Id, uint64(passwordId.ID().(int64)), "The two should be the same")
-	assert.Equal(suite.T(), insertedUserPassword.UserId, newUserPassword.UserId, "The two should be the same")
-	assert.Equal(suite.T(), insertedUserPassword.Name, newUserPassword.Name, "The two should be the same")
-	assert.Equal(suite.T(), insertedUserPassword.Password, newUserPassword.Password, "The two should be the same")
+	assert.Equal(suite.T(), insertedUserPassword.Id, uint64(passwordId.ID().(int64)))
+	assert.Equal(suite.T(), insertedUserPassword.UserId, newUserPassword.UserId)
+	assert.Equal(suite.T(), insertedUserPassword.Name, newUserPassword.Name)
+	assert.Equal(suite.T(), insertedUserPassword.Password, newUserPassword.Password)
 }
 
 // FetchAllByUserId should successfully fetch all user's password from the database
@@ -93,11 +93,11 @@ func (suite *PasswordTestSuite) TestFetchAllByUserId() {
 
 	assert.Equal(suite.T(), len(testUserPasswords), 2, "Should fetch exactly two passwords")
 
-	assert.Equal(suite.T(), testUserPasswords[0].Id, uint64(passwordId1.ID().(int64)), "The two should be the same")
-	assert.Equal(suite.T(), testUserPasswords[1].Id, uint64(passwordId2.ID().(int64)), "The two should be the same")
+	assert.Equal(suite.T(), testUserPasswords[0].Id, uint64(passwordId1.ID().(int64)))
+	assert.Equal(suite.T(), testUserPasswords[1].Id, uint64(passwordId2.ID().(int64)))
 	assert.Equal(suite.T(), testUserPasswords[0].UserId, testUserPasswords[1].UserId, "The passwords should belong to the same user")
-	assert.Equal(suite.T(), testUserPasswords[0].Name, testUserPassword1.Name, "The two should be the same")
-	assert.Equal(suite.T(), testUserPasswords[1].Name, testUserPassword2.Name, "The two should be the same")
-	assert.Equal(suite.T(), testUserPasswords[0].Password, testUserPassword1.Password, "The two should be the same")
-	assert.Equal(suite.T(), testUserPasswords[1].Password, testUserPassword2.Password, "The two should be the same")
+	assert.Equal(suite.T(), testUserPasswords[0].Name, testUserPassword1.Name)
+	assert.Equal(suite.T(), testUserPasswords[1].Name, testUserPassword2.Name)
+	assert.Equal(suite.T(), testUserPasswords[0].Password, testUserPassword1.Password)
+	assert.Equal(suite.T(), testUserPasswords[1].Password, testUserPassword2.Password)
 }

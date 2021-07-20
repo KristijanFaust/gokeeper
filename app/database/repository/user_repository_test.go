@@ -50,10 +50,10 @@ func (suite *UserRepositoryTestSuite) TestInsertNewUser() {
 	err = UserCollection().Find("id", newUserInsertResult).One(&insertedUser)
 	assert.Nil(suite.T(), err)
 
-	assert.Equal(suite.T(), insertedUser.Id, uint64(newUserInsertResult.ID().(int64)), "The two should be the same")
-	assert.Equal(suite.T(), insertedUser.Email, newUser.Email, "The two should be the same")
-	assert.Equal(suite.T(), insertedUser.Username, newUser.Username, "The two should be the same")
-	assert.Equal(suite.T(), insertedUser.Password, newUser.Password, "The two should be the same")
+	assert.Equal(suite.T(), insertedUser.Id, uint64(newUserInsertResult.ID().(int64)))
+	assert.Equal(suite.T(), insertedUser.Email, newUser.Email)
+	assert.Equal(suite.T(), insertedUser.Username, newUser.Username)
+	assert.Equal(suite.T(), insertedUser.Password, newUser.Password)
 }
 
 // FindByEmail should successfully fetch an existing user by email from the database
@@ -71,8 +71,8 @@ func (suite *UserRepositoryTestSuite) TestFetchByEmail() {
 	err = suite.userRepository.FetchByEmail(targetUser, newUser.Email)
 	assert.Nil(suite.T(), err)
 
-	assert.Equal(suite.T(), targetUser.Id, uint64(newUserInsertResult.ID().(int64)), "The two should be the same")
-	assert.Equal(suite.T(), targetUser.Email, newUser.Email, "The two should be the same")
-	assert.Equal(suite.T(), targetUser.Username, newUser.Username, "The two should be the same")
-	assert.Equal(suite.T(), targetUser.Password, newUser.Password, "The two should be the same")
+	assert.Equal(suite.T(), targetUser.Id, uint64(newUserInsertResult.ID().(int64)))
+	assert.Equal(suite.T(), targetUser.Email, newUser.Email)
+	assert.Equal(suite.T(), targetUser.Username, newUser.Username)
+	assert.Equal(suite.T(), targetUser.Password, newUser.Password)
 }

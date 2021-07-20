@@ -55,8 +55,8 @@ func (suite *SchemaResolverTestSuite) TestCreateUser() {
 	assert.Nil(suite.T(), err, "User should be created without errors")
 
 	assert.NotNil(suite.T(), user.ID, "User should have an Id after creation")
-	assert.Equal(suite.T(), user.Email, input.Email, "The two should be the same")
-	assert.Equal(suite.T(), user.Username, input.Username, "The two should be the same")
+	assert.Equal(suite.T(), user.Email, input.Email)
+	assert.Equal(suite.T(), user.Username, input.Username)
 }
 
 // CreateUser should return error on failed input validation
@@ -119,9 +119,9 @@ func (suite *SchemaResolverTestSuite) TestCreatePassword() {
 	assert.Nil(suite.T(), err, "Password should be created without errors")
 
 	assert.NotNil(suite.T(), password.ID, "Password should have an Id after creation")
-	assert.Equal(suite.T(), password.UserID, user.ID, "The two should be the same")
-	assert.Equal(suite.T(), password.Name, passwordInput.Name, "The two should be the same")
-	assert.Equal(suite.T(), password.Password, passwordInput.Password, "The two should be the same")
+	assert.Equal(suite.T(), password.UserID, user.ID)
+	assert.Equal(suite.T(), password.Name, passwordInput.Name)
+	assert.Equal(suite.T(), password.Password, passwordInput.Password)
 }
 
 // CreatePassword should return error on failed input validation
@@ -180,9 +180,9 @@ func (suite *SchemaResolverTestSuite) TestQueryUserByEmail() {
 	queriedUser, err := suite.queryResolver.QueryUserByEmail(context.Background(), user.Email)
 	assert.Nil(suite.T(), err, "Should fetch user without errors")
 
-	assert.Equal(suite.T(), queriedUser.ID, user.ID, "The two should be the same")
-	assert.Equal(suite.T(), queriedUser.Email, user.Email, "The two should be the same")
-	assert.Equal(suite.T(), queriedUser.Username, user.Username, "The two should be the same")
+	assert.Equal(suite.T(), queriedUser.ID, user.ID)
+	assert.Equal(suite.T(), queriedUser.Email, user.Email)
+	assert.Equal(suite.T(), queriedUser.Username, user.Username)
 }
 
 // QueryUserByEmail should return expected error when user doesn't exist
@@ -242,12 +242,12 @@ func (suite *SchemaResolverTestSuite) TestQueryUserPasswords() {
 
 	assert.Equal(suite.T(), len(passwords), 2, "Query should fetch exactly two passwords")
 
-	assert.Equal(suite.T(), passwords[0].Name, password1.Name, "The two should be the same")
-	assert.Equal(suite.T(), passwords[1].Name, password2.Name, "The two should be the same")
-	assert.Equal(suite.T(), passwords[0].Password, password1.Password, "The two should be the same")
-	assert.Equal(suite.T(), passwords[1].Password, password2.Password, "The two should be the same")
+	assert.Equal(suite.T(), passwords[0].Name, password1.Name)
+	assert.Equal(suite.T(), passwords[1].Name, password2.Name)
+	assert.Equal(suite.T(), passwords[0].Password, password1.Password)
+	assert.Equal(suite.T(), passwords[1].Password, password2.Password)
 	for _, password := range passwords {
-		assert.Equal(suite.T(), password.UserID, user.ID, "The two should be the same")
+		assert.Equal(suite.T(), password.UserID, user.ID)
 	}
 }
 
