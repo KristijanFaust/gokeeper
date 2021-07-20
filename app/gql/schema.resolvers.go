@@ -5,6 +5,8 @@ package gql
 
 import (
 	"context"
+	"github.com/99designs/gqlgen/graphql"
+	"github.com/go-playground/validator"
 	"log"
 	"strconv"
 	"strings"
@@ -17,6 +19,11 @@ import (
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
+	validationErrors := manageValidationsErrors(r.validator.Struct(input), ctx)
+	if validationErrors != nil {
+		return nil, gqlerror.Errorf("validation error/s on user creation")
+	}
+
 	newUser := databaseModel.User{Email: input.Email, Username: input.Username, Password: input.Password}
 	insertResult, err := r.userRepository.InsertNewUser(&newUser)
 	if err != nil {
@@ -39,6 +46,11 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 }
 
 func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPassword) (*model.Password, error) {
+	validationErrors := manageValidationsErrors(r.validator.Struct(input), ctx)
+	if validationErrors != nil {
+		return nil, gqlerror.Errorf("validation error/s on password creation")
+	}
+
 	userId, err := strconv.ParseUint(input.UserID, 10, 64)
 	if err != nil {
 		log.Printf("Error occurred while converting user id to uint64: %s", err)
@@ -106,6 +118,16 @@ func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) (
 		)
 	}
 	return passwords, nil
+}
+
+func manageValidationsErrors(validationErrors error, ctx context.Context) error {
+	if validationErrors != nil {
+		for _, err := range validationErrors.(validator.ValidationErrors) {
+			graphql.AddError(ctx, gqlerror.Errorf("field '%s' with value '%s' violates constraint: %s", err.Field(), err.Value(), err.Tag()))
+		}
+	}
+
+	return validationErrors
 }
 
 // Mutation returns generated.MutationResolver implementation.

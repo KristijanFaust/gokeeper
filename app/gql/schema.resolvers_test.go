@@ -2,6 +2,7 @@ package gql
 
 import (
 	"context"
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/KristijanFaust/gokeeper/app/config"
 	"github.com/KristijanFaust/gokeeper/app/database"
 	"github.com/KristijanFaust/gokeeper/app/database/repository"
@@ -58,6 +59,19 @@ func (suite *SchemaResolverTestSuite) TestCreateUser() {
 	assert.Equal(suite.T(), user.Username, input.Username, "The two should be the same")
 }
 
+// CreateUser should return error on failed input validation
+func (suite *SchemaResolverTestSuite) TestCreateUserValidation() {
+	input := model.NewUser{Email: "invalidEmail", Username: "", Password: ""}
+	ctx := graphql.WithResponseContext(context.Background(), graphql.DefaultErrorPresenter, graphql.DefaultRecover)
+	user, err := suite.mutationResolver.CreateUser(ctx, input)
+
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("validation error/s on user creation"),
+		"Should return expected error when input validation for new user fails",
+	)
+	assert.Nil(suite.T(), user, "Should not return any user data")
+}
+
 // CreateUser should detect existing user emails
 func (suite *SchemaResolverTestSuite) TestCreateUserWithExistingEmail() {
 	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
@@ -108,6 +122,19 @@ func (suite *SchemaResolverTestSuite) TestCreatePassword() {
 	assert.Equal(suite.T(), password.UserID, user.ID, "The two should be the same")
 	assert.Equal(suite.T(), password.Name, passwordInput.Name, "The two should be the same")
 	assert.Equal(suite.T(), password.Password, passwordInput.Password, "The two should be the same")
+}
+
+// CreatePassword should return error on failed input validation
+func (suite *SchemaResolverTestSuite) TestCreatePasswordValidation() {
+	input := model.NewPassword{UserID: "", Name: "", Password: ""}
+	ctx := graphql.WithResponseContext(context.Background(), graphql.DefaultErrorPresenter, graphql.DefaultRecover)
+	password, err := suite.mutationResolver.CreatePassword(ctx, input)
+
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("validation error/s on password creation"),
+		"Should return expected error when input validation for new user fails",
+	)
+	assert.Nil(suite.T(), password, "Should not return any user data")
 }
 
 // CreatePassword should return expected error when userId is of an unexpected value

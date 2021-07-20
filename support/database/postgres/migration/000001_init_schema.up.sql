@@ -1,8 +1,8 @@
 CREATE TABLE "user"
 (
     "id"       bigserial PRIMARY KEY,
-    "email"    varchar NOT NULL UNIQUE,
-    "username" varchar NOT NULL,
+    "email"    varchar(254) NOT NULL UNIQUE, -- RFC standard prohibits e-mails longer than 254 characters
+    "username" varchar(32) NOT NULL,
     "password" varchar NOT NULL
 );
 
@@ -10,7 +10,7 @@ CREATE TABLE "password"
 (
     "id"       bigserial PRIMARY KEY,
     "user_id"  bigint  NOT NULL,
-    "name"     varchar NOT NULL,
+    "name"     varchar(64) NOT NULL,
     "password" varchar NOT NULL,
     CONSTRAINT fk_user
         FOREIGN KEY("user_id")

@@ -2,18 +2,6 @@
 
 package model
 
-type NewPassword struct {
-	UserID   string `json:"userId"`
-	Name     string `json:"name"`
-	Password string `json:"password"`
-}
-
-type NewUser struct {
-	Email    string `json:"email"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 type Password struct {
 	ID       string `json:"id"`
 	UserID   string `json:"userId"`
