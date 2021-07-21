@@ -42,7 +42,7 @@ func (suite *UserRepositoryTestSuite) TestInsertNewUser() {
 		suite.T().Skip("Skipping test since database container is not ready")
 	}
 
-	newUser := &model.User{Email: "testUsername@test.com", Username: "testUsername", Password: "testPassword"}
+	newUser := &model.User{Email: "testUsername@test.com", Username: "testUsername", Password: []byte("testPassword")}
 	newUserInsertResult, err := suite.userRepository.InsertNewUser(newUser)
 	assert.Nil(suite.T(), err)
 
@@ -62,7 +62,7 @@ func (suite *UserRepositoryTestSuite) TestFetchByEmail() {
 		suite.T().Skip("Skipping test since database container is not ready")
 	}
 
-	newUser := &model.User{Email: "testFetchUsername@test.com", Username: "testFetchUsername", Password: "testFetchPassword"}
+	newUser := &model.User{Email: "testFetchUsername@test.com", Username: "testFetchUsername", Password: []byte("testFetchPassword")}
 
 	newUserInsertResult, err := suite.userRepository.InsertNewUser(newUser)
 	assert.Nil(suite.T(), err)

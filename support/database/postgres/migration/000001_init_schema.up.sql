@@ -3,7 +3,7 @@ CREATE TABLE "user"
     "id"       bigserial PRIMARY KEY,
     "email"    varchar(254) NOT NULL UNIQUE, -- RFC standard prohibits e-mails longer than 254 characters
     "username" varchar(32) NOT NULL,
-    "password" varchar NOT NULL
+    "password" bytea NOT NULL
 );
 
 CREATE TABLE "password"

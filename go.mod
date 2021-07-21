@@ -19,5 +19,6 @@ require (
 	github.com/upper/db/v4 v4.1.0
 	github.com/vektah/gqlparser v1.2.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.1.0
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 	gopkg.in/yaml.v2 v2.4.0
 )

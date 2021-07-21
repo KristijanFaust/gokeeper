@@ -6,6 +6,7 @@ package gql
 import (
 	"context"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/KristijanFaust/gokeeper/app/security"
 	"github.com/go-playground/validator"
 	"log"
 	"strconv"
@@ -24,7 +25,9 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 		return nil, gqlerror.Errorf("validation error/s on user creation")
 	}
 
-	newUser := databaseModel.User{Email: input.Email, Username: input.Username, Password: input.Password}
+	passwordHash := security.HashWithArgon2id(input.Password)
+
+	newUser := databaseModel.User{Email: input.Email, Username: input.Username, Password: passwordHash}
 	insertResult, err := r.userRepository.InsertNewUser(&newUser)
 	if err != nil {
 		switch errorType := err.(type) {

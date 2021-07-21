@@ -44,7 +44,7 @@ func (suite *PasswordTestSuite) TestInsertNewUser() {
 		suite.T().Skip("Skipping test since database container is not ready")
 	}
 
-	user := &model.User{Email: "testInsertPassword@test.com", Username: "testInsertPassword", Password: "testInsertPassword"}
+	user := &model.User{Email: "testInsertPassword@test.com", Username: "testInsertPassword", Password: []byte("testInsertPassword")}
 	userId, err := suite.userRepository.InsertNewUser(user)
 	assert.Nil(suite.T(), err)
 
@@ -68,7 +68,7 @@ func (suite *PasswordTestSuite) TestFetchAllByUserId() {
 		suite.T().Skip("Skipping test since database container is not ready")
 	}
 
-	testUser := &model.User{Email: "testFetchPasswords@test.com", Username: "testFetchPasswords", Password: "testFetchPassword"}
+	testUser := &model.User{Email: "testFetchPasswords@test.com", Username: "testFetchPasswords", Password: []byte("testFetchPassword")}
 	testUserId, err := suite.userRepository.InsertNewUser(testUser)
 	assert.Nil(suite.T(), err)
 
@@ -80,7 +80,7 @@ func (suite *PasswordTestSuite) TestFetchAllByUserId() {
 	passwordId2, err := suite.passwordRepository.InsertNewPassword(testUserPassword2)
 	assert.Nil(suite.T(), err)
 
-	additionalUser := &model.User{Email: "additionalUser@test.com", Username: "additionalUser", Password: "additionalUser"}
+	additionalUser := &model.User{Email: "additionalUser@test.com", Username: "additionalUser", Password: []byte("additionalUser")}
 	additionalUserId, err := suite.userRepository.InsertNewUser(additionalUser)
 	assert.Nil(suite.T(), err)
 
@@ -89,7 +89,8 @@ func (suite *PasswordTestSuite) TestFetchAllByUserId() {
 	assert.Nil(suite.T(), err)
 
 	testUserPasswords := model.Passwords{}
-	suite.passwordRepository.FetchAllByUserId(&testUserPasswords, uint64(testUserId.ID().(int64)))
+	err = suite.passwordRepository.FetchAllByUserId(&testUserPasswords, uint64(testUserId.ID().(int64)))
+	assert.Nil(suite.T(), err)
 
 	assert.Equal(suite.T(), len(testUserPasswords), 2, "Should fetch exactly two passwords")
 
