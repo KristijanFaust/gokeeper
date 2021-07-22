@@ -9,6 +9,7 @@ import (
 type UserRepository interface {
 	InsertNewUser(user *model.User) (db.InsertResult, error)
 	FetchByEmail(user *model.User, email string) error
+	FetchMasterPasswordByUserId(user *model.User, id uint64) error
 }
 
 type UserRepositoryService struct{}
@@ -23,4 +24,9 @@ func (userRepositoryService *UserRepositoryService) InsertNewUser(user *model.Us
 
 func (userRepositoryService *UserRepositoryService) FetchByEmail(user *model.User, email string) error {
 	return UserCollection().Find("email", email).One(user)
+}
+
+func (userRepositoryService *UserRepositoryService) FetchMasterPasswordByUserId(user *model.User, id uint64) error {
+	q := database.Session.SQL().Select("password").From("user").Where("id = ?", id)
+	return q.One(user)
 }

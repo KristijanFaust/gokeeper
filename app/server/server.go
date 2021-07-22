@@ -7,6 +7,7 @@ import (
 	"github.com/KristijanFaust/gokeeper/app/database/repository"
 	"github.com/KristijanFaust/gokeeper/app/gql"
 	"github.com/KristijanFaust/gokeeper/app/gql/generated"
+	"github.com/KristijanFaust/gokeeper/app/security"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
@@ -26,7 +27,11 @@ func Run(serverDoneWaitGroup *sync.WaitGroup) *http.Server {
 
 	router := chi.NewRouter()
 	graphqlHandler := handler.NewDefaultServer(generated.NewExecutableSchema(
-		generated.Config{Resolvers: gql.NewResolver(&repository.UserRepositoryService{}, &repository.PasswordRepositoryService{})},
+		generated.Config{Resolvers: gql.NewResolver(
+			&repository.UserRepositoryService{},
+			&repository.PasswordRepositoryService{},
+			&security.PasswordCryptoService{},
+		)},
 	))
 
 	if reflect.ValueOf(config.ApplicationConfig.Profile).IsZero() || !config.ApplicationConfig.Profile.Production {

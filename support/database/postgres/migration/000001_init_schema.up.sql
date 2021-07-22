@@ -11,7 +11,7 @@ CREATE TABLE "password"
     "id"       bigserial PRIMARY KEY,
     "user_id"  bigint  NOT NULL,
     "name"     varchar(64) NOT NULL,
-    "password" varchar NOT NULL,
+    "password" bytea NOT NULL,
     CONSTRAINT fk_user
         FOREIGN KEY("user_id")
             REFERENCES "user"("id")

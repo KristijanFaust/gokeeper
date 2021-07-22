@@ -8,6 +8,7 @@ import (
 	"github.com/KristijanFaust/gokeeper/app/database/repository"
 	"github.com/KristijanFaust/gokeeper/app/gql/generated"
 	"github.com/KristijanFaust/gokeeper/app/gql/model"
+	"github.com/KristijanFaust/gokeeper/app/security"
 	"github.com/KristijanFaust/gokeeper/app/utility/test/databaseutil"
 	"github.com/KristijanFaust/gokeeper/app/utility/test/mock"
 	"github.com/KristijanFaust/gokeeper/app/utility/test/testcontainersutil"
@@ -34,7 +35,7 @@ func (suite *SchemaResolverTestSuite) SetupSuite() {
 	databaseutil.GenerateTestDatasourceConfiguration()
 	database.InitializeDatabaseConnection()
 	suite.isDatabaseMigrated = databaseutil.RunDatabaseMigrations()
-	injectRuntimeRepositoryServices(suite)
+	injectRuntimeResolverServices(suite)
 }
 
 func (suite *SchemaResolverTestSuite) TearDownSuite() {
@@ -92,8 +93,8 @@ func (suite *SchemaResolverTestSuite) TestCreateUserWithExistingEmail() {
 
 // CreateUser should return expected error on unsuccessful user creation
 func (suite *SchemaResolverTestSuite) TestCreateUserWithError() {
-	mockRepositoryServicesWithGenericErrors(suite)
-	defer injectRuntimeRepositoryServices(suite)
+	injectMockedResolverServices(suite, true, false, false, false, false, false, false)
+	defer injectRuntimeResolverServices(suite)
 
 	input := model.NewUser{Email: "usercreationerror@email.com", Username: "testUsername", Password: "password"}
 	user, err := suite.mutationResolver.CreateUser(context.Background(), input)
@@ -167,6 +168,34 @@ func (suite *SchemaResolverTestSuite) TestCreatePasswordWithNonexistentUser() {
 	assert.Nil(suite.T(), password, "Should not return any password data")
 }
 
+// CreatePassword should return expected error when insert to database fails
+func (suite *SchemaResolverTestSuite) TestCreatePasswordWithInsertError() {
+	injectMockedResolverServices(suite, false, false, false, true, false, false, false)
+	defer injectRuntimeResolverServices(suite)
+
+	passwordInput := model.NewPassword{UserID: "1", Name: "testDomain", Password: "password"}
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), passwordInput)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not create a new password"),
+		"Should return expected error when user doesn't exist",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// CreatePassword should return expected error on unsuccessful password encryption
+func (suite *SchemaResolverTestSuite) TestCreatePasswordWithEncryptionError() {
+	injectMockedResolverServices(suite, false, false, false, false, false, true, false)
+	defer injectRuntimeResolverServices(suite)
+
+	passwordInput := model.NewPassword{UserID: "1", Name: "testDomain", Password: "password"}
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), passwordInput)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not create a new password"),
+		"Should return expected error when user doesn't exist",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
 // QueryUserByEmail should successfully query for a specific user by email
 func (suite *SchemaResolverTestSuite) TestQueryUserByEmail() {
 	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
@@ -201,8 +230,8 @@ func (suite *SchemaResolverTestSuite) TestQueryUserByEmailWithNonexistentUser() 
 
 // QueryUserByEmail should return expected error on unsuccessful user fetch
 func (suite *SchemaResolverTestSuite) TestQueryUserByEmailWithError() {
-	mockRepositoryServicesWithGenericErrors(suite)
-	defer injectRuntimeRepositoryServices(suite)
+	injectMockedResolverServices(suite, false, true, false, false, false, false, false)
+	defer injectRuntimeResolverServices(suite)
 
 	user, err := suite.queryResolver.QueryUserByEmail(context.Background(), "testemail@mail.com")
 	assert.Equal(
@@ -281,10 +310,10 @@ func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithUnexpectedUserId
 	assert.Nil(suite.T(), passwords, "Should not return any passwords data")
 }
 
-// QueryUserPasswords should return expected error on unsuccessful user's passwords fetch
-func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithError() {
-	mockRepositoryServicesWithGenericErrors(suite)
-	defer injectRuntimeRepositoryServices(suite)
+// QueryUserPasswords should return expected error on unsuccessful user's master password fetch
+func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithMasterPasswordFetchError() {
+	injectMockedResolverServices(suite, false, false, true, false, false, false, false)
+	defer injectRuntimeResolverServices(suite)
 
 	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), "1")
 	assert.Equal(
@@ -294,14 +323,57 @@ func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithError() {
 	assert.Nil(suite.T(), passwords, "Should not return any user data")
 }
 
-func mockRepositoryServicesWithGenericErrors(suite *SchemaResolverTestSuite) {
-	resolver := NewResolver(&mock.UserRepositoryServiceMock{}, &mock.PasswordRepositoryServiceMock{})
+// QueryUserPasswords should return expected error on unsuccessful user's passwords fetch
+func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithFetchError() {
+	injectMockedResolverServices(suite, false, false, false, false, true, false, false)
+	defer injectRuntimeResolverServices(suite)
+
+	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), "1")
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not fetch user's passwords"),
+		"Should return expected error when user email already exists",
+	)
+	assert.Nil(suite.T(), passwords, "Should not return any user data")
+}
+
+// QueryUserPasswords should return expected error on unsuccessful user's passwords decryption
+func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithDecryptionError() {
+	injectMockedResolverServices(suite, false, false, false, false, false, false, true)
+	defer injectRuntimeResolverServices(suite)
+
+	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), "1")
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not fetch user's passwords"),
+		"Should return expected error when user email already exists",
+	)
+	assert.Nil(suite.T(), passwords, "Should not return any user data")
+}
+
+func injectMockedResolverServices(
+	suite *SchemaResolverTestSuite,
+	insertNewUserError bool,
+	fetchByEmailError bool,
+	fetchMasterPasswordByUserIdError bool,
+	insertPasswordError bool,
+	fetchAllByUserIdError bool,
+	encryptionError bool,
+	decryptionError bool,
+) {
+	resolver := NewResolver(
+		&mock.UserRepositoryServiceMock{
+			InsertNewUserError:               insertNewUserError,
+			FetchByEmailError:                fetchByEmailError,
+			FetchMasterPasswordByUserIdError: fetchMasterPasswordByUserIdError,
+		},
+		&mock.PasswordRepositoryServiceMock{InsertPasswordError: insertPasswordError, FetchAllByUserIdError: fetchAllByUserIdError},
+		&mock.PasswordCryptoServiceMock{EncryptionError: encryptionError, DecryptionError: decryptionError},
+	)
 	suite.mutationResolver = resolver.Mutation()
 	suite.queryResolver = resolver.Query()
 }
 
-func injectRuntimeRepositoryServices(suite *SchemaResolverTestSuite) {
-	resolver := NewResolver(&repository.UserRepositoryService{}, &repository.PasswordRepositoryService{})
+func injectRuntimeResolverServices(suite *SchemaResolverTestSuite) {
+	resolver := NewResolver(&repository.UserRepositoryService{}, &repository.PasswordRepositoryService{}, &security.PasswordCryptoService{})
 	suite.mutationResolver = resolver.Mutation()
 	suite.queryResolver = resolver.Query()
 }

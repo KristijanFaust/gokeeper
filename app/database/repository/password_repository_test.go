@@ -48,7 +48,7 @@ func (suite *PasswordTestSuite) TestInsertNewUser() {
 	userId, err := suite.userRepository.InsertNewUser(user)
 	assert.Nil(suite.T(), err)
 
-	var newUserPassword = &model.Password{UserId: uint64(userId.ID().(int64)), Name: "SomeApplication", Password: "password"}
+	var newUserPassword = &model.Password{UserId: uint64(userId.ID().(int64)), Name: "SomeApplication", Password: []byte("password")}
 	passwordId, err := suite.passwordRepository.InsertNewPassword(newUserPassword)
 	assert.Nil(suite.T(), err)
 
@@ -72,11 +72,11 @@ func (suite *PasswordTestSuite) TestFetchAllByUserId() {
 	testUserId, err := suite.userRepository.InsertNewUser(testUser)
 	assert.Nil(suite.T(), err)
 
-	testUserPassword1 := &model.Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication1", Password: "password1"}
+	testUserPassword1 := &model.Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication1", Password: []byte("password1")}
 	passwordId1, err := suite.passwordRepository.InsertNewPassword(testUserPassword1)
 	assert.Nil(suite.T(), err)
 
-	testUserPassword2 := &model.Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication2", Password: "password2"}
+	testUserPassword2 := &model.Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication2", Password: []byte("password2")}
 	passwordId2, err := suite.passwordRepository.InsertNewPassword(testUserPassword2)
 	assert.Nil(suite.T(), err)
 
@@ -84,7 +84,7 @@ func (suite *PasswordTestSuite) TestFetchAllByUserId() {
 	additionalUserId, err := suite.userRepository.InsertNewUser(additionalUser)
 	assert.Nil(suite.T(), err)
 
-	additionalUserPassword := &model.Password{UserId: uint64(additionalUserId.ID().(int64)), Name: "SomeApplication", Password: "password"}
+	additionalUserPassword := &model.Password{UserId: uint64(additionalUserId.ID().(int64)), Name: "SomeApplication", Password: []byte("password")}
 	_, err = suite.passwordRepository.InsertNewPassword(additionalUserPassword)
 	assert.Nil(suite.T(), err)
 

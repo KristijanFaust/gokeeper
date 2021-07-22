@@ -59,9 +59,22 @@ func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPa
 		log.Printf("Error occurred while converting user id to uint64: %s", err)
 		return nil, gqlerror.Errorf("could not create a new password")
 	}
-	newPassword := databaseModel.Password{UserId: userId, Name: input.Name, Password: input.Password}
 
-	//insertResult, err := newPassword.InsertNewPassword()
+	user := databaseModel.User{}
+	err = r.userRepository.FetchMasterPasswordByUserId(&user, userId)
+	if err != nil {
+		log.Printf("Error while fetching user master password: %s", err)
+		return nil, gqlerror.Errorf("could not create a new password")
+	}
+
+	encryptedPassword, err := r.passwordCryptoService.EncryptWithAes(input.Password, user.Password)
+	if err != nil {
+		log.Printf("Error while encrypting user password: %s", err)
+		return nil, gqlerror.Errorf("could not create a new password")
+	}
+
+	newPassword := databaseModel.Password{UserId: userId, Name: input.Name, Password: encryptedPassword}
+
 	insertResult, err := r.passwordRepository.InsertNewPassword(&newPassword)
 	if err != nil {
 		return nil, gqlerror.Errorf("could not create a new password")
@@ -104,19 +117,31 @@ func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) (
 	var passwords []*model.Password
 	fetchedPasswords := databaseModel.Passwords{}
 
+	user := databaseModel.User{}
+	err = r.userRepository.FetchMasterPasswordByUserId(&user, userId)
+	if err != nil {
+		log.Printf("Error while fetching user master password: %s", err)
+		return nil, gqlerror.Errorf("could not fetch user's passwords")
+	}
+
 	err = r.passwordRepository.FetchAllByUserId(&fetchedPasswords, userId)
 	if err != nil {
 		return nil, gqlerror.Errorf("could not fetch user's passwords")
 	}
 
 	for _, password := range fetchedPasswords {
+		decryptedPassword, err := r.passwordCryptoService.DecryptWithAes(password.Password, user.Password)
+		if err != nil {
+			log.Printf("Error while decrypting user password: %s", err)
+			return nil, gqlerror.Errorf("could not fetch user's passwords")
+		}
 		passwords = append(
 			passwords,
 			&model.Password{
 				ID:       strconv.FormatUint(password.Id, 10),
 				UserID:   strconv.FormatUint(password.UserId, 10),
 				Name:     password.Name,
-				Password: password.Password,
+				Password: decryptedPassword,
 			},
 		)
 	}
