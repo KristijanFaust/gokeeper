@@ -67,7 +67,7 @@ func (suite *SchemaResolverTestSuite) TestCreateUserValidation() {
 	user, err := suite.mutationResolver.CreateUser(ctx, input)
 
 	assert.Equal(
-		suite.T(), err, gqlerror.Errorf("validation error/s on user creation"),
+		suite.T(), err, gqlerror.Errorf("validation error/s on user input"),
 		"Should return expected error when input validation for new user fails",
 	)
 	assert.Nil(suite.T(), user, "Should not return any user data")
@@ -132,7 +132,7 @@ func (suite *SchemaResolverTestSuite) TestCreatePasswordValidation() {
 	password, err := suite.mutationResolver.CreatePassword(ctx, input)
 
 	assert.Equal(
-		suite.T(), err, gqlerror.Errorf("validation error/s on password creation"),
+		suite.T(), err, gqlerror.Errorf("validation error/s on password input"),
 		"Should return expected error when input validation for new user fails",
 	)
 	assert.Nil(suite.T(), password, "Should not return any user data")

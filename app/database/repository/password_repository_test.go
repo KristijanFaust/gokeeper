@@ -39,7 +39,7 @@ func (suite *PasswordTestSuite) TearDownSuite() {
 }
 
 // InsertNewPassword should successfully insert a new user password in the database
-func (suite *PasswordTestSuite) TestInsertNewUser() {
+func (suite *PasswordTestSuite) TestInsertNewPassword() {
 	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
 		suite.T().Skip("Skipping test since database container is not ready")
 	}

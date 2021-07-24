@@ -12,6 +12,8 @@ import (
 
 var settings *postgresql.ConnectionURL
 var Session db.Session
+
+// Variable meant for mocking
 var ping = db.Session.Ping
 
 func InitializeDatabaseConnection() {

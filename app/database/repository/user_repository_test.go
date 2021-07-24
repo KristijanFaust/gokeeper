@@ -56,7 +56,7 @@ func (suite *UserRepositoryTestSuite) TestInsertNewUser() {
 	assert.Equal(suite.T(), insertedUser.Password, newUser.Password)
 }
 
-// FindByEmail should successfully fetch an existing user by email from the database
+// FetchByEmail should successfully fetch an existing user by email from the database
 func (suite *UserRepositoryTestSuite) TestFetchByEmail() {
 	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
 		suite.T().Skip("Skipping test since database container is not ready")

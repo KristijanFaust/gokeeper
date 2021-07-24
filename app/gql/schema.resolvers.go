@@ -18,10 +18,19 @@ import (
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
+const (
+	userCreationErrorMessage          = "could not create a new user"
+	passwordCreationErrorMessage      = "could not create a new password"
+	userFetchErrorMessage             = "could not fetch user"
+	userPasswordsFetchErrorMessage    = "could not fetch user's passwords"
+	existingEmailErrorMessage         = "the e-mail address is already taken"
+	queryNonExistingEmailErrorMessage = "user doesn't exist"
+)
+
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
 	validationErrors := manageValidationsErrors(r.validator.Struct(input), ctx)
 	if validationErrors != nil {
-		return nil, gqlerror.Errorf("validation error/s on user creation")
+		return nil, gqlerror.Errorf("validation error/s on user input")
 	}
 
 	passwordHash := r.passwordSecurityService.HashWithArgon2id(input.Password)
@@ -32,10 +41,10 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 		switch errorType := err.(type) {
 		case *pq.Error:
 			if errorType.Code == "23505" {
-				return nil, gqlerror.Errorf("the e-mail address is already taken")
+				return nil, gqlerror.Errorf(existingEmailErrorMessage)
 			}
 		default:
-			return nil, gqlerror.Errorf("could not create a new user")
+			return nil, gqlerror.Errorf(userCreationErrorMessage)
 		}
 	}
 
@@ -50,33 +59,33 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPassword) (*model.Password, error) {
 	validationErrors := manageValidationsErrors(r.validator.Struct(input), ctx)
 	if validationErrors != nil {
-		return nil, gqlerror.Errorf("validation error/s on password creation")
+		return nil, gqlerror.Errorf("validation error/s on password input")
 	}
 
 	userId, err := strconv.ParseUint(input.UserID, 10, 64)
 	if err != nil {
 		log.Printf("Error occurred while converting user id to uint64: %s", err)
-		return nil, gqlerror.Errorf("could not create a new password")
+		return nil, gqlerror.Errorf(passwordCreationErrorMessage)
 	}
 
 	user := databaseModel.User{}
 	err = r.userRepository.FetchMasterPasswordByUserId(&user, userId)
 	if err != nil {
 		log.Printf("Error while fetching user master password: %s", err)
-		return nil, gqlerror.Errorf("could not create a new password")
+		return nil, gqlerror.Errorf(passwordCreationErrorMessage)
 	}
 
 	encryptedPassword, err := r.passwordSecurityService.EncryptWithAes(input.Password, user.Password)
 	if err != nil {
 		log.Printf("Error while encrypting user password: %s", err)
-		return nil, gqlerror.Errorf("could not create a new password")
+		return nil, gqlerror.Errorf(passwordCreationErrorMessage)
 	}
 
 	newPassword := databaseModel.Password{UserId: userId, Name: input.Name, Password: encryptedPassword}
 
 	insertResult, err := r.passwordRepository.InsertNewPassword(&newPassword)
 	if err != nil {
-		return nil, gqlerror.Errorf("could not create a new password")
+		return nil, gqlerror.Errorf(passwordCreationErrorMessage)
 	}
 
 	insertedPassword := &model.Password{
@@ -93,9 +102,9 @@ func (r *queryResolver) QueryUserByEmail(ctx context.Context, email string) (*mo
 	err := r.userRepository.FetchByEmail(&fetchedUser, email)
 	if err != nil {
 		if strings.Contains(err.Error(), "upper: no more rows in this result set") {
-			return nil, gqlerror.Errorf("user doesn't exist")
+			return nil, gqlerror.Errorf(queryNonExistingEmailErrorMessage)
 		}
-		return nil, gqlerror.Errorf("could not fetch user")
+		return nil, gqlerror.Errorf(userFetchErrorMessage)
 	}
 
 	user := &model.User{
@@ -110,7 +119,7 @@ func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) (
 	userId, err := strconv.ParseUint(userID, 10, 64)
 	if err != nil {
 		log.Printf("Error occurred while converting user id to uint64: %s", err)
-		return nil, gqlerror.Errorf("could not fetch user's passwords")
+		return nil, gqlerror.Errorf(userPasswordsFetchErrorMessage)
 	}
 
 	var passwords []*model.Password
@@ -120,19 +129,19 @@ func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) (
 	err = r.userRepository.FetchMasterPasswordByUserId(&user, userId)
 	if err != nil {
 		log.Printf("Error while fetching user master password: %s", err)
-		return nil, gqlerror.Errorf("could not fetch user's passwords")
+		return nil, gqlerror.Errorf(userPasswordsFetchErrorMessage)
 	}
 
 	err = r.passwordRepository.FetchAllByUserId(&fetchedPasswords, userId)
 	if err != nil {
-		return nil, gqlerror.Errorf("could not fetch user's passwords")
+		return nil, gqlerror.Errorf(userPasswordsFetchErrorMessage)
 	}
 
 	for _, password := range fetchedPasswords {
 		decryptedPassword, err := r.passwordSecurityService.DecryptWithAes(password.Password, user.Password)
 		if err != nil {
 			log.Printf("Error while decrypting user password: %s", err)
-			return nil, gqlerror.Errorf("could not fetch user's passwords")
+			return nil, gqlerror.Errorf(userPasswordsFetchErrorMessage)
 		}
 		passwords = append(
 			passwords,
