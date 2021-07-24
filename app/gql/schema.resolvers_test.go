@@ -21,11 +21,12 @@ import (
 
 type SchemaResolverTestSuite struct {
 	suite.Suite
-	session            *db.Session
-	isDatabaseUp       bool
-	isDatabaseMigrated bool
-	mutationResolver   generated.MutationResolver
-	queryResolver      generated.QueryResolver
+	session              *db.Session
+	isDatabaseUp         bool
+	isDatabaseMigrated   bool
+	mutationResolver     generated.MutationResolver
+	queryResolver        generated.QueryResolver
+	gqlgenRequestContext context.Context
 }
 
 func TestPasswordSuite(t *testing.T) {
@@ -38,6 +39,14 @@ func (suite *SchemaResolverTestSuite) SetupSuite() {
 	suite.session = database.InitializeDatabaseConnection()
 	suite.isDatabaseMigrated = databaseutil.RunDatabaseMigrations()
 	injectRuntimeResolverServices(suite)
+	suite.gqlgenRequestContext = graphql.WithFieldContext(
+		context.WithValue(graphql.WithOperationContext(
+			context.Background(),
+			&graphql.OperationContext{}),
+			"operation_context", []string{},
+		),
+		&graphql.FieldContext{},
+	)
 }
 
 func (suite *SchemaResolverTestSuite) TearDownSuite() {
@@ -208,7 +217,7 @@ func (suite *SchemaResolverTestSuite) TestQueryUserByEmail() {
 	user, err := suite.mutationResolver.CreateUser(context.Background(), userInput)
 	assert.Nil(suite.T(), err, "Should create user without errors")
 
-	queriedUser, err := suite.queryResolver.QueryUserByEmail(context.Background(), user.Email)
+	queriedUser, err := suite.queryResolver.QueryUserByEmail(suite.gqlgenRequestContext, user.Email)
 	assert.Nil(suite.T(), err, "Should fetch user without errors")
 
 	assert.Equal(suite.T(), queriedUser.ID, user.ID)
@@ -222,7 +231,7 @@ func (suite *SchemaResolverTestSuite) TestQueryUserByEmailWithNonexistentUser() 
 		suite.T().Skip("Skipping test since database container is not ready")
 	}
 
-	user, err := suite.queryResolver.QueryUserByEmail(context.Background(), "nonexistentmail@mail.com")
+	user, err := suite.queryResolver.QueryUserByEmail(suite.gqlgenRequestContext, "nonexistentmail@mail.com")
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("user doesn't exist"),
 		"Should return expected error when user email already exists",
@@ -235,7 +244,7 @@ func (suite *SchemaResolverTestSuite) TestQueryUserByEmailWithError() {
 	injectMockedResolverServices(suite, false, true, false, false, false, false, false)
 	defer injectRuntimeResolverServices(suite)
 
-	user, err := suite.queryResolver.QueryUserByEmail(context.Background(), "testemail@mail.com")
+	user, err := suite.queryResolver.QueryUserByEmail(suite.gqlgenRequestContext, "testemail@mail.com")
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not fetch user"),
 		"Should return expected error when user email already exists",
@@ -268,7 +277,7 @@ func (suite *SchemaResolverTestSuite) TestQueryUserPasswords() {
 	_, err = suite.mutationResolver.CreatePassword(context.Background(), passwordInput)
 	assert.Nil(suite.T(), err, "Should create password without errors")
 
-	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), user.ID)
+	passwords, err := suite.queryResolver.QueryUserPasswords(suite.gqlgenRequestContext, user.ID)
 	assert.Nil(suite.T(), err, "Should fetch passwords without errors")
 
 	assert.Equal(suite.T(), len(passwords), 2, "Query should fetch exactly two passwords")
@@ -292,7 +301,7 @@ func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithoutUserPasswords
 	user, err := suite.mutationResolver.CreateUser(context.Background(), userInput)
 	assert.Nil(suite.T(), err, "Should create user without errors")
 
-	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), user.ID)
+	passwords, err := suite.queryResolver.QueryUserPasswords(suite.gqlgenRequestContext, user.ID)
 
 	assert.Nil(suite.T(), err, "Should fetch passwords without errors")
 	assert.Nil(suite.T(), passwords, "Should return nil passwords slice")
@@ -330,7 +339,7 @@ func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithFetchError() {
 	injectMockedResolverServices(suite, false, false, false, false, true, false, false)
 	defer injectRuntimeResolverServices(suite)
 
-	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), "1")
+	passwords, err := suite.queryResolver.QueryUserPasswords(suite.gqlgenRequestContext, "1")
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not fetch user's passwords"),
 		"Should return expected error when user email already exists",
@@ -343,7 +352,7 @@ func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithDecryptionError(
 	injectMockedResolverServices(suite, false, false, false, false, false, false, true)
 	defer injectRuntimeResolverServices(suite)
 
-	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), "1")
+	passwords, err := suite.queryResolver.QueryUserPasswords(suite.gqlgenRequestContext, "1")
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not fetch user's passwords"),
 		"Should return expected error when user email already exists",

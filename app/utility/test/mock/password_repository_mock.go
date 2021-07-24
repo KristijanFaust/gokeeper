@@ -19,7 +19,7 @@ func (repository *PasswordRepositoryServiceMock) InsertNewPassword(password *mod
 	return db.NewInsertResult(int64(1)), nil
 }
 
-func (repository *PasswordRepositoryServiceMock) FetchAllByUserId(passwords *model.Passwords, userId uint64) error {
+func (repository *PasswordRepositoryServiceMock) FetchAllByUserId(passwords *model.Passwords, userId uint64, queryFields []string) error {
 	if repository.FetchAllByUserIdError {
 		return errors.New("mock generic service error")
 	}

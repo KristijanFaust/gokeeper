@@ -2,12 +2,13 @@ package repository
 
 import (
 	"github.com/KristijanFaust/gokeeper/app/database/model"
+	"github.com/iancoleman/strcase"
 	"github.com/upper/db/v4"
 )
 
 type PasswordRepository interface {
 	InsertNewPassword(password *model.Password) (db.InsertResult, error)
-	FetchAllByUserId(passwords *model.Passwords, userId uint64) error
+	FetchAllByUserId(passwords *model.Passwords, userId uint64, queryFields []string) error
 }
 
 type passwordRepositoryService struct {
@@ -26,6 +27,10 @@ func (repository *passwordRepositoryService) InsertNewPassword(password *model.P
 	return repository.Password().Insert(password)
 }
 
-func (repository *passwordRepositoryService) FetchAllByUserId(passwords *model.Passwords, userId uint64) error {
-	return repository.Password().Find("user_id", userId).All(passwords)
+func (repository *passwordRepositoryService) FetchAllByUserId(passwords *model.Passwords, userId uint64, queryFields []string) error {
+	query := (*repository.session).SQL().Select().Columns()
+	for _, field := range queryFields {
+		query = query.Columns(strcase.ToSnake(field))
+	}
+	return query.From("password").Where("user_id = ?", userId).All(passwords)
 }

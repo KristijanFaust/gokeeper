@@ -91,7 +91,7 @@ func (suite *PasswordTestSuite) TestFetchAllByUserId() {
 	assert.Nil(suite.T(), err)
 
 	testUserPasswords := model.Passwords{}
-	err = suite.passwordRepository.FetchAllByUserId(&testUserPasswords, uint64(testUserId.ID().(int64)))
+	err = suite.passwordRepository.FetchAllByUserId(&testUserPasswords, uint64(testUserId.ID().(int64)), nil)
 	assert.Nil(suite.T(), err)
 
 	assert.Equal(suite.T(), len(testUserPasswords), 2, "Should fetch exactly two passwords")
@@ -103,4 +103,28 @@ func (suite *PasswordTestSuite) TestFetchAllByUserId() {
 	assert.Equal(suite.T(), testUserPasswords[1].Name, testUserPassword2.Name)
 	assert.Equal(suite.T(), testUserPasswords[0].Password, testUserPassword1.Password)
 	assert.Equal(suite.T(), testUserPasswords[1].Password, testUserPassword2.Password)
+}
+
+// FetchAllByUserId should only fetch requested columns from the database
+func (suite *PasswordTestSuite) TestFetchAllByUserIdWithSpecificFields() {
+	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
+		suite.T().Skip("Skipping test since database container is not ready")
+	}
+
+	testUser := &model.User{Email: "testSpecificFieldsFetch@test.com", Username: "testFetchPasswords", Password: []byte("testFetchPassword")}
+	testUserId, err := suite.userRepository.InsertNewUser(testUser)
+	assert.Nil(suite.T(), err)
+
+	testUserPassword := &model.Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication", Password: []byte("password")}
+	passwordId, err := suite.passwordRepository.InsertNewPassword(testUserPassword)
+	assert.Nil(suite.T(), err)
+
+	testUserPasswords := model.Passwords{}
+	err = suite.passwordRepository.FetchAllByUserId(&testUserPasswords, uint64(testUserId.ID().(int64)), []string{"id", "password"})
+	assert.Nil(suite.T(), err)
+
+	assert.Equal(suite.T(), testUserPasswords[0].Id, uint64(passwordId.ID().(int64)))
+	assert.Equal(suite.T(), testUserPasswords[0].UserId, uint64(0))
+	assert.Equal(suite.T(), testUserPasswords[0].Name, "")
+	assert.Equal(suite.T(), testUserPasswords[0].Password, testUserPassword.Password)
 }

@@ -99,7 +99,7 @@ func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPa
 
 func (r *queryResolver) QueryUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	fetchedUser := databaseModel.User{}
-	err := r.userRepository.FetchByEmail(&fetchedUser, email)
+	err := r.userRepository.FetchByEmail(&fetchedUser, email, graphql.CollectAllFields(ctx))
 	if err != nil {
 		if strings.Contains(err.Error(), "upper: no more rows in this result set") {
 			return nil, gqlerror.Errorf(queryNonExistingEmailErrorMessage)
@@ -132,7 +132,7 @@ func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) (
 		return nil, gqlerror.Errorf(userPasswordsFetchErrorMessage)
 	}
 
-	err = r.passwordRepository.FetchAllByUserId(&fetchedPasswords, userId)
+	err = r.passwordRepository.FetchAllByUserId(&fetchedPasswords, userId, graphql.CollectAllFields(ctx))
 	if err != nil {
 		return nil, gqlerror.Errorf(userPasswordsFetchErrorMessage)
 	}

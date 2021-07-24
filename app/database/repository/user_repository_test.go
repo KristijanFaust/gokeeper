@@ -70,13 +70,34 @@ func (suite *UserRepositoryTestSuite) TestFetchByEmail() {
 	assert.Nil(suite.T(), err)
 
 	targetUser := &model.User{}
-	err = suite.userRepository.FetchByEmail(targetUser, newUser.Email)
+	err = suite.userRepository.FetchByEmail(targetUser, newUser.Email, nil)
 	assert.Nil(suite.T(), err)
 
 	assert.Equal(suite.T(), targetUser.Id, uint64(newUserInsertResult.ID().(int64)))
 	assert.Equal(suite.T(), targetUser.Email, newUser.Email)
 	assert.Equal(suite.T(), targetUser.Username, newUser.Username)
 	assert.Equal(suite.T(), targetUser.Password, newUser.Password)
+}
+
+// FetchByEmail should only fetch requested columns from the database
+func (suite *UserRepositoryTestSuite) TestFetchByEmailWithSpecificFields() {
+	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
+		suite.T().Skip("Skipping test since database container is not ready")
+	}
+
+	newUser := &model.User{Email: "testSpecificFieldsFetching@test.com", Username: "testFetchUsername", Password: []byte("testFetchPassword")}
+
+	_, err := suite.userRepository.InsertNewUser(newUser)
+	assert.Nil(suite.T(), err)
+
+	targetUser := &model.User{}
+	err = suite.userRepository.FetchByEmail(targetUser, newUser.Email, []string{"username"})
+	assert.Nil(suite.T(), err)
+
+	assert.Equal(suite.T(), targetUser.Id, uint64(0))
+	assert.Equal(suite.T(), targetUser.Email, "")
+	assert.Equal(suite.T(), targetUser.Username, newUser.Username)
+	assert.Equal(suite.T(), targetUser.Password, []byte(nil))
 }
 
 // FetchMasterPasswordByUserId should successfully fetch an existing user's master password by id from the database

@@ -20,7 +20,7 @@ func (userRepositoryService *UserRepositoryServiceMock) InsertNewUser(user *mode
 	return db.NewInsertResult(int64(1)), nil
 }
 
-func (userRepositoryService *UserRepositoryServiceMock) FetchByEmail(user *model.User, email string) error {
+func (userRepositoryService *UserRepositoryServiceMock) FetchByEmail(user *model.User, email string, queryFields []string) error {
 	if userRepositoryService.FetchByEmailError {
 		return errors.New("mock generic service error")
 	}
