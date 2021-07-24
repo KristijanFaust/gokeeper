@@ -7,21 +7,21 @@ import (
 )
 
 type Resolver struct {
-	userRepository        repository.UserRepository
-	passwordRepository    repository.PasswordRepository
-	passwordCryptoService security.AesPasswordCryptor
-	validator             *validator.Validate
+	userRepository          repository.UserRepository
+	passwordRepository      repository.PasswordRepository
+	passwordSecurityService security.PasswordSecurity
+	validator               *validator.Validate
 }
 
 func NewResolver(
 	userRepository repository.UserRepository,
 	passwordRepository repository.PasswordRepository,
-	passwordCryptoService security.AesPasswordCryptor,
+	passwordSecurityService security.PasswordSecurity,
 ) *Resolver {
 	return &Resolver{
-		userRepository:        userRepository,
-		passwordRepository:    passwordRepository,
-		passwordCryptoService: passwordCryptoService,
-		validator:             validator.New(),
+		userRepository:          userRepository,
+		passwordRepository:      passwordRepository,
+		passwordSecurityService: passwordSecurityService,
+		validator:               validator.New(),
 	}
 }

@@ -366,14 +366,21 @@ func injectMockedResolverServices(
 			FetchMasterPasswordByUserIdError: fetchMasterPasswordByUserIdError,
 		},
 		&mock.PasswordRepositoryServiceMock{InsertPasswordError: insertPasswordError, FetchAllByUserIdError: fetchAllByUserIdError},
-		&mock.PasswordCryptoServiceMock{EncryptionError: encryptionError, DecryptionError: decryptionError},
+		&mock.PasswordSecurityServiceMock{EncryptionError: encryptionError, DecryptionError: decryptionError},
 	)
 	suite.mutationResolver = resolver.Mutation()
 	suite.queryResolver = resolver.Query()
 }
 
 func injectRuntimeResolverServices(suite *SchemaResolverTestSuite) {
-	resolver := NewResolver(&repository.UserRepositoryService{}, &repository.PasswordRepositoryService{}, &security.PasswordCryptoService{})
+	resolver := NewResolver(
+		&repository.UserRepositoryService{},
+		&repository.PasswordRepositoryService{},
+		&security.PasswordSecurityService{
+			Argon2PasswordHasher: &security.PasswordHashService{},
+			AesPasswordCryptor:   &security.PasswordCryptoService{},
+		},
+	)
 	suite.mutationResolver = resolver.Mutation()
 	suite.queryResolver = resolver.Query()
 }

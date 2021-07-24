@@ -30,7 +30,10 @@ func Run(serverDoneWaitGroup *sync.WaitGroup) *http.Server {
 		generated.Config{Resolvers: gql.NewResolver(
 			&repository.UserRepositoryService{},
 			&repository.PasswordRepositoryService{},
-			&security.PasswordCryptoService{},
+			&security.PasswordSecurityService{
+				Argon2PasswordHasher: &security.PasswordHashService{},
+				AesPasswordCryptor:   &security.PasswordCryptoService{},
+			},
 		)},
 	))
 

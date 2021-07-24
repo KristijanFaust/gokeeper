@@ -6,7 +6,6 @@ package gql
 import (
 	"context"
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/KristijanFaust/gokeeper/app/security"
 	"github.com/go-playground/validator"
 	"log"
 	"strconv"
@@ -25,7 +24,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 		return nil, gqlerror.Errorf("validation error/s on user creation")
 	}
 
-	passwordHash := security.HashWithArgon2id(input.Password)
+	passwordHash := r.passwordSecurityService.HashWithArgon2id(input.Password)
 
 	newUser := databaseModel.User{Email: input.Email, Username: input.Username, Password: passwordHash}
 	insertResult, err := r.userRepository.InsertNewUser(&newUser)
@@ -67,7 +66,7 @@ func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPa
 		return nil, gqlerror.Errorf("could not create a new password")
 	}
 
-	encryptedPassword, err := r.passwordCryptoService.EncryptWithAes(input.Password, user.Password)
+	encryptedPassword, err := r.passwordSecurityService.EncryptWithAes(input.Password, user.Password)
 	if err != nil {
 		log.Printf("Error while encrypting user password: %s", err)
 		return nil, gqlerror.Errorf("could not create a new password")
@@ -130,7 +129,7 @@ func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) (
 	}
 
 	for _, password := range fetchedPasswords {
-		decryptedPassword, err := r.passwordCryptoService.DecryptWithAes(password.Password, user.Password)
+		decryptedPassword, err := r.passwordSecurityService.DecryptWithAes(password.Password, user.Password)
 		if err != nil {
 			log.Printf("Error while decrypting user password: %s", err)
 			return nil, gqlerror.Errorf("could not fetch user's passwords")

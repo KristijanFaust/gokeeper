@@ -3,7 +3,6 @@ package mock
 import (
 	"errors"
 	"github.com/KristijanFaust/gokeeper/app/database/model"
-	"github.com/KristijanFaust/gokeeper/app/security"
 	"github.com/upper/db/v4"
 )
 
@@ -34,6 +33,6 @@ func (userRepositoryService *UserRepositoryServiceMock) FetchMasterPasswordByUse
 		return errors.New("mock generic service error")
 	}
 
-	user.Password = security.HashWithArgon2id("MockedMasterPassword")
+	user.Password = []byte("MockedHashedMasterPasswordThatIsAtLeast32BytesLong")
 	return nil
 }

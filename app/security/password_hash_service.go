@@ -11,6 +11,12 @@ const (
 	keyLength  = 128
 )
 
-func HashWithArgon2id(password string) []byte {
+type Argon2PasswordHasher interface {
+	HashWithArgon2id(password string) []byte
+}
+
+type PasswordHashService struct{}
+
+func (service *PasswordHashService) HashWithArgon2id(password string) []byte {
 	return argon2.IDKey([]byte(password), []byte(hashSalt), iterations, memory, threads, keyLength)
 }
