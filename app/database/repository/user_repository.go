@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"github.com/KristijanFaust/gokeeper/app/database"
 	"github.com/KristijanFaust/gokeeper/app/database/model"
 	"github.com/upper/db/v4"
 )
@@ -12,21 +11,27 @@ type UserRepository interface {
 	FetchMasterPasswordByUserId(user *model.User, id uint64) error
 }
 
-type UserRepositoryService struct{}
-
-func UserCollection() db.Collection {
-	return database.Session.Collection("user")
+type userRepositoryService struct {
+	session *db.Session
 }
 
-func (userRepositoryService *UserRepositoryService) InsertNewUser(user *model.User) (db.InsertResult, error) {
-	return UserCollection().Insert(user)
+func NewUserRepositoryService(session *db.Session) *userRepositoryService {
+	return &userRepositoryService{session: session}
 }
 
-func (userRepositoryService *UserRepositoryService) FetchByEmail(user *model.User, email string) error {
-	return UserCollection().Find("email", email).One(user)
+func (userRepositoryService *userRepositoryService) User() db.Collection {
+	return (*userRepositoryService.session).Collection("user")
 }
 
-func (userRepositoryService *UserRepositoryService) FetchMasterPasswordByUserId(user *model.User, id uint64) error {
-	q := database.Session.SQL().Select("password").From("user").Where("id = ?", id)
+func (userRepositoryService *userRepositoryService) InsertNewUser(user *model.User) (db.InsertResult, error) {
+	return userRepositoryService.User().Insert(user)
+}
+
+func (userRepositoryService *userRepositoryService) FetchByEmail(user *model.User, email string) error {
+	return userRepositoryService.User().Find("email", email).One(user)
+}
+
+func (userRepositoryService *userRepositoryService) FetchMasterPasswordByUserId(user *model.User, id uint64) error {
+	q := (*userRepositoryService.session).SQL().Select("password").From("user").Where("id = ?", id)
 	return q.One(user)
 }

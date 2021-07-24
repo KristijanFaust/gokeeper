@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"github.com/KristijanFaust/gokeeper/app/database"
 	"github.com/KristijanFaust/gokeeper/app/database/model"
 	"github.com/upper/db/v4"
 )
@@ -11,16 +10,22 @@ type PasswordRepository interface {
 	FetchAllByUserId(passwords *model.Passwords, userId uint64) error
 }
 
-type PasswordRepositoryService struct{}
-
-func PasswordCollection() db.Collection {
-	return database.Session.Collection("password")
+type passwordRepositoryService struct {
+	session *db.Session
 }
 
-func (repository *PasswordRepositoryService) InsertNewPassword(password *model.Password) (db.InsertResult, error) {
-	return PasswordCollection().Insert(password)
+func NewPasswordRepositoryService(session *db.Session) *passwordRepositoryService {
+	return &passwordRepositoryService{session: session}
 }
 
-func (repository *PasswordRepositoryService) FetchAllByUserId(passwords *model.Passwords, userId uint64) error {
-	return PasswordCollection().Find("user_id", userId).All(passwords)
+func (repository *passwordRepositoryService) Password() db.Collection {
+	return (*repository.session).Collection("password")
+}
+
+func (repository *passwordRepositoryService) InsertNewPassword(password *model.Password) (db.InsertResult, error) {
+	return repository.Password().Insert(password)
+}
+
+func (repository *passwordRepositoryService) FetchAllByUserId(passwords *model.Passwords, userId uint64) error {
+	return repository.Password().Find("user_id", userId).All(passwords)
 }

@@ -37,16 +37,17 @@ func (suite *DatabaseTestSuite) TestInitializeDatabaseConnection() {
 		suite.T().Skip("Skipping test since database container is not ready")
 	}
 	databaseutil.GenerateTestDatasourceConfiguration()
-	assert.NotPanics(suite.T(), InitializeDatabaseConnection, "Database connections should initialize without panics")
-	assert.NotNil(suite.T(), Session, "Session should be set up now")
-	CloseDatabaseConnection()
+	var session *db.Session
+	assert.NotPanics(suite.T(), func() { session = InitializeDatabaseConnection() }, "Database connections should initialize without panics")
+	assert.NotNil(suite.T(), session, "Session should be set up now")
+	CloseDatabaseConnection(session)
 }
 
 // InitializeDatabaseConnection should panic if datasource configuration is not loaded
 func (suite *DatabaseTestSuite) TestInitializeDatabaseConnectionWithoutDatasourceConfiguration() {
 	assert.PanicsWithValue(
 		suite.T(), "Datasource configuration not loaded, cannot connect to database",
-		InitializeDatabaseConnection, "Database connection setup should panic if no datasource configuration is loaded",
+		func() { InitializeDatabaseConnection() }, "Database connection setup should panic if no datasource configuration is loaded",
 	)
 }
 
@@ -56,7 +57,7 @@ func (suite *DatabaseTestSuite) TestInitializeDatabaseConnectionWithDatabaseConn
 	config.ApplicationConfig.Datasource.Host = "invalid"
 	assert.PanicsWithValue(
 		suite.T(), "Could not connect to database: dial tcp: lookup invalid: Temporary failure in name resolution",
-		InitializeDatabaseConnection, "Database connection setup should panic if connection to database cannot be established",
+		func() { InitializeDatabaseConnection() }, "Database connection setup should panic if connection to database cannot be established",
 	)
 }
 
@@ -66,13 +67,12 @@ func (suite *DatabaseTestSuite) TestInitializeDatabaseConnectionWithUnsuccessful
 		suite.T().Skip("Skipping test since database container is not ready")
 	}
 	databaseutil.GenerateTestDatasourceConfiguration()
-	ping = func(session db.Session) error { return db.ErrNotConnected }
-	defer func() { ping = db.Session.Ping }()
+	pingDatabase = func(session db.Session) error { return db.ErrNotConnected }
+	defer func() { pingDatabase = db.Session.Ping }()
 	assert.PanicsWithValue(
 		suite.T(), "Could not ping database: upper: not connected to a database",
-		InitializeDatabaseConnection, "Database connection setup should panic if ping to database is unsuccessful",
+		func() { InitializeDatabaseConnection() }, "Database connection setup should panic if ping to database is unsuccessful",
 	)
-	CloseDatabaseConnection()
 }
 
 // CloseDatabaseConnection should successfully disconnect from application database
@@ -81,9 +81,8 @@ func (suite *DatabaseTestSuite) TestCloseDatabaseConncetion() {
 		suite.T().Skip("Skipping test since database container is not ready")
 	}
 	databaseutil.GenerateTestDatasourceConfiguration()
-	InitializeDatabaseConnection()
-	assert.NotPanics(suite.T(), CloseDatabaseConnection, "Database connections should close without panics")
-	assert.Nil(suite.T(), Session, "Session should be invalidated now")
+	session := InitializeDatabaseConnection()
+	assert.NotPanics(suite.T(), func() { CloseDatabaseConnection(session) }, "Database connections should close without panics")
 }
 
 // CloseDatabaseConnection should not panic on error
@@ -92,7 +91,9 @@ func (suite *DatabaseTestSuite) TestCloseDatabaseConncetionWithError() {
 		suite.T().Skip("Skipping test since database container is not ready")
 	}
 	databaseutil.GenerateTestDatasourceConfiguration()
-	InitializeDatabaseConnection()
-	CloseDatabaseConnection()
-	assert.NotPanics(suite.T(), CloseDatabaseConnection, "Database connections should not panic on error")
+	session := InitializeDatabaseConnection()
+	closeConnection = func(session db.Session) error { return db.ErrNotConnected }
+	assert.NotPanics(suite.T(), func() { CloseDatabaseConnection(session) }, "Database connections should not panic on error")
+	closeConnection = db.Session.Close
+	CloseDatabaseConnection(session)
 }

@@ -14,12 +14,14 @@ import (
 	"github.com/KristijanFaust/gokeeper/app/utility/test/testcontainersutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/upper/db/v4"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"testing"
 )
 
 type SchemaResolverTestSuite struct {
 	suite.Suite
+	session            *db.Session
 	isDatabaseUp       bool
 	isDatabaseMigrated bool
 	mutationResolver   generated.MutationResolver
@@ -33,14 +35,14 @@ func TestPasswordSuite(t *testing.T) {
 func (suite *SchemaResolverTestSuite) SetupSuite() {
 	suite.isDatabaseUp = testcontainersutil.DockerComposeUp()
 	databaseutil.GenerateTestDatasourceConfiguration()
-	database.InitializeDatabaseConnection()
+	suite.session = database.InitializeDatabaseConnection()
 	suite.isDatabaseMigrated = databaseutil.RunDatabaseMigrations()
 	injectRuntimeResolverServices(suite)
 }
 
 func (suite *SchemaResolverTestSuite) TearDownSuite() {
 	testcontainersutil.DockerComposeDown()
-	database.CloseDatabaseConnection()
+	database.CloseDatabaseConnection(suite.session)
 	config.ApplicationConfig = nil
 }
 
@@ -374,8 +376,8 @@ func injectMockedResolverServices(
 
 func injectRuntimeResolverServices(suite *SchemaResolverTestSuite) {
 	resolver := NewResolver(
-		&repository.UserRepositoryService{},
-		&repository.PasswordRepositoryService{},
+		repository.NewUserRepositoryService(suite.session),
+		repository.NewPasswordRepositoryService(suite.session),
 		&security.PasswordSecurityService{
 			Argon2PasswordHasher: &security.PasswordHashService{},
 			AesPasswordCryptor:   &security.PasswordCryptoService{},

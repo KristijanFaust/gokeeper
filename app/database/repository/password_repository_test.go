@@ -8,11 +8,13 @@ import (
 	"github.com/KristijanFaust/gokeeper/app/utility/test/testcontainersutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/upper/db/v4"
 	"testing"
 )
 
 type PasswordTestSuite struct {
 	suite.Suite
+	session            *db.Session
 	isDatabaseUp       bool
 	isDatabaseMigrated bool
 	userRepository     UserRepository
@@ -26,15 +28,15 @@ func TestPasswordSuite(t *testing.T) {
 func (suite *PasswordTestSuite) SetupSuite() {
 	suite.isDatabaseUp = testcontainersutil.DockerComposeUp()
 	databaseutil.GenerateTestDatasourceConfiguration()
-	database.InitializeDatabaseConnection()
+	suite.session = database.InitializeDatabaseConnection()
 	suite.isDatabaseMigrated = databaseutil.RunDatabaseMigrations()
-	suite.userRepository = &UserRepositoryService{}
-	suite.passwordRepository = &PasswordRepositoryService{}
+	suite.userRepository = NewUserRepositoryService(suite.session)
+	suite.passwordRepository = NewPasswordRepositoryService(suite.session)
 }
 
 func (suite *PasswordTestSuite) TearDownSuite() {
 	testcontainersutil.DockerComposeDown()
-	database.CloseDatabaseConnection()
+	database.CloseDatabaseConnection(suite.session)
 	config.ApplicationConfig = nil
 }
 
@@ -53,7 +55,7 @@ func (suite *PasswordTestSuite) TestInsertNewPassword() {
 	assert.Nil(suite.T(), err)
 
 	insertedUserPassword := model.Password{}
-	err = PasswordCollection().Find("id", passwordId).One(&insertedUserPassword)
+	err = (*suite.session).Collection("password").Find("id", passwordId).One(&insertedUserPassword)
 	assert.Nil(suite.T(), err)
 
 	assert.Equal(suite.T(), insertedUserPassword.Id, uint64(passwordId.ID().(int64)))

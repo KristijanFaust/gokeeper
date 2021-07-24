@@ -20,7 +20,7 @@ func TestRun(t *testing.T) {
 	var server *http.Server
 	serverDoneWaitGroup := &sync.WaitGroup{}
 	serverDoneWaitGroup.Add(1)
-	assert.NotPanics(t, func() { server = Run(serverDoneWaitGroup) }, "Server should run without panics")
+	assert.NotPanics(t, func() { server = Run(serverDoneWaitGroup, nil) }, "Server should run without panics")
 
 	server.Shutdown(context.TODO())
 	serverDoneWaitGroup.Wait()
@@ -30,7 +30,7 @@ func TestRun(t *testing.T) {
 func TestRunWithoutConfiguration(t *testing.T) {
 	assert.PanicsWithValue(
 		t, "Server configuration not loaded, cannot start server",
-		func() { Run(nil) }, "Server boot should panic if no configuration is loaded",
+		func() { Run(nil, nil) }, "Server boot should panic if no configuration is loaded",
 	)
 }
 
@@ -44,7 +44,7 @@ func TestRunWithServerBootError(t *testing.T) {
 	serverDoneWaitGroup.Add(1)
 
 	signal.Ignore(syscall.SIGINT)
-	assert.NotPanics(t, func() { Run(serverDoneWaitGroup) }, "Server should try to boot without panics")
+	assert.NotPanics(t, func() { Run(serverDoneWaitGroup, nil) }, "Server should try to boot without panics")
 
 	serverDoneWaitGroup.Wait()
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/KristijanFaust/gokeeper/app/gql/generated"
 	"github.com/KristijanFaust/gokeeper/app/security"
 	"github.com/go-chi/chi/v5"
+	"github.com/upper/db/v4"
 	"log"
 	"net/http"
 	"reflect"
@@ -16,7 +17,7 @@ import (
 	"syscall"
 )
 
-func Run(serverDoneWaitGroup *sync.WaitGroup) *http.Server {
+func Run(serverDoneWaitGroup *sync.WaitGroup, session *db.Session) *http.Server {
 	if config.ApplicationConfig == nil || reflect.ValueOf(config.ApplicationConfig.Server).IsZero() {
 		log.Panic("Server configuration not loaded, cannot start server")
 	}
@@ -28,8 +29,8 @@ func Run(serverDoneWaitGroup *sync.WaitGroup) *http.Server {
 	router := chi.NewRouter()
 	graphqlHandler := handler.NewDefaultServer(generated.NewExecutableSchema(
 		generated.Config{Resolvers: gql.NewResolver(
-			&repository.UserRepositoryService{},
-			&repository.PasswordRepositoryService{},
+			repository.NewUserRepositoryService(session),
+			repository.NewPasswordRepositoryService(session),
 			&security.PasswordSecurityService{
 				Argon2PasswordHasher: &security.PasswordHashService{},
 				AesPasswordCryptor:   &security.PasswordCryptoService{},

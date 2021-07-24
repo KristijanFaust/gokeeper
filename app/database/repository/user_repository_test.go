@@ -8,11 +8,13 @@ import (
 	"github.com/KristijanFaust/gokeeper/app/utility/test/testcontainersutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/upper/db/v4"
 	"testing"
 )
 
 type UserRepositoryTestSuite struct {
 	suite.Suite
+	session            *db.Session
 	isDatabaseUp       bool
 	isDatabaseMigrated bool
 	userRepository     UserRepository
@@ -25,14 +27,14 @@ func TestUserSuite(t *testing.T) {
 func (suite *UserRepositoryTestSuite) SetupSuite() {
 	suite.isDatabaseUp = testcontainersutil.DockerComposeUp()
 	databaseutil.GenerateTestDatasourceConfiguration()
-	database.InitializeDatabaseConnection()
+	suite.session = database.InitializeDatabaseConnection()
 	suite.isDatabaseMigrated = databaseutil.RunDatabaseMigrations()
-	suite.userRepository = &UserRepositoryService{}
+	suite.userRepository = NewUserRepositoryService(suite.session)
 }
 
 func (suite *UserRepositoryTestSuite) TearDownSuite() {
 	testcontainersutil.DockerComposeDown()
-	database.CloseDatabaseConnection()
+	database.CloseDatabaseConnection(suite.session)
 	config.ApplicationConfig = nil
 }
 
@@ -47,7 +49,7 @@ func (suite *UserRepositoryTestSuite) TestInsertNewUser() {
 	assert.Nil(suite.T(), err)
 
 	insertedUser := model.User{}
-	err = UserCollection().Find("id", newUserInsertResult).One(&insertedUser)
+	err = (*suite.session).Collection("user").Find("id", newUserInsertResult).One(&insertedUser)
 	assert.Nil(suite.T(), err)
 
 	assert.Equal(suite.T(), insertedUser.Id, uint64(newUserInsertResult.ID().(int64)))

@@ -17,12 +17,12 @@ import (
 func main() {
 	stdout.PrintApplicationBanner()
 	config.LoadConfiguration("./config.yml")
-	database.InitializeDatabaseConnection()
-	defer database.CloseDatabaseConnection()
+	session := database.InitializeDatabaseConnection()
+	defer database.CloseDatabaseConnection(session)
 
 	serverDoneWaitGroup := &sync.WaitGroup{}
 	serverDoneWaitGroup.Add(1)
-	server := server.Run(serverDoneWaitGroup)
+	server := server.Run(serverDoneWaitGroup, session)
 
 	waitForQuitSignal()
 
