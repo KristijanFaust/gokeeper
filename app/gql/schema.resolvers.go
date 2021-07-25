@@ -5,26 +5,18 @@ package gql
 
 import (
 	"context"
-	"github.com/99designs/gqlgen/graphql"
-	"github.com/go-playground/validator"
+	"crypto/subtle"
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/99designs/gqlgen/graphql"
 	databaseModel "github.com/KristijanFaust/gokeeper/app/database/model"
 	"github.com/KristijanFaust/gokeeper/app/gql/generated"
 	"github.com/KristijanFaust/gokeeper/app/gql/model"
 	"github.com/lib/pq"
 	"github.com/vektah/gqlparser/v2/gqlerror"
-)
-
-const (
-	userCreationErrorMessage          = "could not create a new user"
-	passwordCreationErrorMessage      = "could not create a new password"
-	userFetchErrorMessage             = "could not fetch user"
-	userPasswordsFetchErrorMessage    = "could not fetch user's passwords"
-	existingEmailErrorMessage         = "the e-mail address is already taken"
-	queryNonExistingEmailErrorMessage = "user doesn't exist"
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
@@ -97,6 +89,29 @@ func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPa
 	return insertedPassword, nil
 }
 
+func (r *mutationResolver) SignIn(ctx context.Context, input model.UserSignIn) (*model.Token, error) {
+	fetchedUser := databaseModel.User{}
+	err := r.userRepository.FetchByEmail(&fetchedUser, input.Email, nil)
+	if err != nil {
+		if strings.Contains(err.Error(), "upper: no more rows in this result set") {
+			return nil, gqlerror.Errorf(queryNonExistingEmailErrorMessage)
+		}
+		return nil, gqlerror.Errorf(signInErrorMessage)
+	}
+
+	if subtle.ConstantTimeCompare(r.passwordSecurityService.HashWithArgon2id(input.Password), fetchedUser.Password) == 0 {
+		return nil, gqlerror.Errorf(wrongPasswordErrorMessage)
+	}
+
+	expireAt := int(time.Now().Add(time.Minute * 15).Unix())
+	token, err := r.authenticationService.GenerateJwt(fetchedUser.Id, int64(expireAt))
+	if err != nil {
+		return nil, gqlerror.Errorf(signInErrorMessage)
+	}
+
+	return &model.Token{Token: token, ExpireAt: expireAt}, nil
+}
+
 func (r *queryResolver) QueryUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	fetchedUser := databaseModel.User{}
 	err := r.userRepository.FetchByEmail(&fetchedUser, email, graphql.CollectAllFields(ctx))
@@ -154,16 +169,6 @@ func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) (
 		)
 	}
 	return passwords, nil
-}
-
-func manageValidationsErrors(validationErrors error, ctx context.Context) error {
-	if validationErrors != nil {
-		for _, err := range validationErrors.(validator.ValidationErrors) {
-			graphql.AddError(ctx, gqlerror.Errorf("field '%s' with value '%s' violates constraint: %s", err.Field(), err.Value(), err.Tag()))
-		}
-	}
-
-	return validationErrors
 }
 
 // Mutation returns generated.MutationResolver implementation.

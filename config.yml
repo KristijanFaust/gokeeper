@@ -12,3 +12,7 @@ datasource:
   database: gokeeper
   max-open-connections: 12
   connection-lifetime: 60
+
+authentication:
+  issuer: gokeeper
+  jwtSigningKey: ENwJsa2nm674seV6

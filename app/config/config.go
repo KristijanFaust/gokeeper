@@ -24,6 +24,10 @@ type Config struct {
 		MaxOpenConnections    int    `yaml:"max-open-connections"`
 		MaxConnectionLifetime int    `yaml:"connection-lifetime"`
 	} `yaml:"datasource"`
+	Authentication struct {
+		Issuer        string `yaml:"issuer"`
+		JwtSigningKey string `yaml:"jwtSigningKey"`
+	} `yaml:"authentication"`
 }
 
 func LoadConfiguration(configPath string) {

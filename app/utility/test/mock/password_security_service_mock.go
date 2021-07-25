@@ -2,7 +2,6 @@ package mock
 
 import (
 	"errors"
-	"golang.org/x/crypto/argon2"
 )
 
 type PasswordSecurityServiceMock struct {
@@ -27,5 +26,5 @@ func (service *PasswordSecurityServiceMock) DecryptWithAes(encryptedPassword []b
 }
 
 func (service *PasswordSecurityServiceMock) HashWithArgon2id(password string) []byte {
-	return argon2.IDKey([]byte(password), []byte("testSalt"), 1, 1024, 1, 128)
+	return []byte("MockedHashedMasterPasswordThatIsAtLeast32BytesLong")
 }

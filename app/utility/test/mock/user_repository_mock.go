@@ -24,6 +24,10 @@ func (userRepositoryService *UserRepositoryServiceMock) FetchByEmail(user *model
 	if userRepositoryService.FetchByEmailError {
 		return errors.New("mock generic service error")
 	}
+	user.Id = uint64(1)
+	user.Email = email
+	user.Username = "username"
+	user.Password = []byte("MockedHashedMasterPasswordThatIsAtLeast32BytesLong")
 
 	return nil
 }

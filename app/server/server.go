@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/KristijanFaust/gokeeper/app/authentication"
 	"github.com/KristijanFaust/gokeeper/app/config"
 	"github.com/KristijanFaust/gokeeper/app/database/repository"
 	"github.com/KristijanFaust/gokeeper/app/gql"
@@ -35,6 +36,10 @@ func Run(serverDoneWaitGroup *sync.WaitGroup, session *db.Session) *http.Server 
 				Argon2PasswordHasher: &security.PasswordHashService{},
 				AesPasswordCryptor:   &security.PasswordCryptoService{},
 			},
+			authentication.NewJwtAuthenticationService(
+				config.ApplicationConfig.Authentication.Issuer,
+				[]byte(config.ApplicationConfig.Authentication.JwtSigningKey),
+			),
 		)},
 	))
 

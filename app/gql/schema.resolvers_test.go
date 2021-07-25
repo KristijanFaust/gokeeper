@@ -3,6 +3,7 @@ package gql
 import (
 	"context"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/KristijanFaust/gokeeper/app/authentication"
 	"github.com/KristijanFaust/gokeeper/app/config"
 	"github.com/KristijanFaust/gokeeper/app/database"
 	"github.com/KristijanFaust/gokeeper/app/database/repository"
@@ -16,6 +17,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/upper/db/v4"
 	"github.com/vektah/gqlparser/v2/gqlerror"
+	"strconv"
 	"testing"
 )
 
@@ -207,6 +209,89 @@ func (suite *SchemaResolverTestSuite) TestCreatePasswordWithEncryptionError() {
 	assert.Nil(suite.T(), password, "Should not return any password data")
 }
 
+// SignIn should successfully sign in a user
+func (suite *SchemaResolverTestSuite) TestSignIn() {
+	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
+		suite.T().Skip("Skipping test since database container is not ready")
+	}
+
+	userInput := model.NewUser{Email: "testsignin@email.com", Username: "testUsername", Password: "password"}
+	user, err := suite.mutationResolver.CreateUser(context.Background(), userInput)
+
+	userSignInData := model.UserSignIn{Email: "testsignin@email.com", Password: "password"}
+	token, err := suite.mutationResolver.SignIn(context.Background(), userSignInData)
+
+	assert.Nil(suite.T(), err)
+
+	userIdAsUint64, _ := strconv.ParseUint(user.ID, 10, 64)
+	replicatedJwtTokenGenerator := authentication.NewJwtAuthenticationService("issuer", []byte("signingKey"))
+	generatedToken, _ := replicatedJwtTokenGenerator.GenerateJwt(userIdAsUint64, int64(token.ExpireAt))
+	assert.Equal(suite.T(), token.Token, generatedToken)
+}
+
+// SignIn should return expected error when a non existing user is trying to sign in
+func (suite *SchemaResolverTestSuite) TestSignInWithNonExistingUser() {
+	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
+		suite.T().Skip("Skipping test since database container is not ready")
+	}
+
+	userSignInData := model.UserSignIn{Email: "nonexistingusersignin@email.com", Password: "password"}
+	token, err := suite.mutationResolver.SignIn(context.Background(), userSignInData)
+
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("user doesn't exist"),
+		"Should return expected error when non existing email is trying to sign in",
+	)
+	assert.Nil(suite.T(), token, "Token should not be generated")
+}
+
+// SignIn should return an error when fetching user by email fails
+func (suite *SchemaResolverTestSuite) TestSignInWithFetchUserByEmailError() {
+	injectMockedResolverServices(suite, false, true, false, false, false, false, false)
+	defer injectRuntimeResolverServices(suite)
+
+	userSignInData := model.UserSignIn{Email: "testsignin@email.com", Password: "password"}
+	token, err := suite.mutationResolver.SignIn(context.Background(), userSignInData)
+
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not sign in"),
+		"Should return expected error when fetch user by email fails",
+	)
+	assert.Nil(suite.T(), token, "Token should not be generated")
+}
+
+// TODO - Rework test mocks so this test can pass
+/*
+// SignIn should return expected error when user gives wrong password
+func (suite *SchemaResolverTestSuite) TestSignInWithWrongPassword() {
+	injectMockedResolverServices(suite, false, false, false, false, false, false, false)
+	defer injectRuntimeResolverServices(suite)
+
+	userSignInData := model.UserSignIn{Email: "testsignin@email.com", Password: "password"}
+	token, err := suite.mutationResolver.SignIn(context.Background(), userSignInData)
+
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("wrong password"),
+		"Should return expected error when fetch user by email fails",
+	)
+	assert.Nil(suite.T(), token, "Token should not be generated")
+}
+*/
+// SignIn should return expected error when jwt generation fails
+func (suite *SchemaResolverTestSuite) TestSignInWithGenerateJwtError() {
+	injectMockedResolverServices(suite, false, false, false, false, false, false, false)
+	defer injectRuntimeResolverServices(suite)
+
+	userSignInData := model.UserSignIn{Email: "testsignin@email.com", Password: "MockedHashedMasterPasswordThatIsAtLeast32BytesLong"}
+	token, err := suite.mutationResolver.SignIn(context.Background(), userSignInData)
+
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not sign in"),
+		"Should return expected error when jwt generation fails",
+	)
+	assert.Nil(suite.T(), token, "Token should not be generated")
+}
+
 // QueryUserByEmail should successfully query for a specific user by email
 func (suite *SchemaResolverTestSuite) TestQueryUserByEmail() {
 	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
@@ -378,6 +463,7 @@ func injectMockedResolverServices(
 		},
 		&mock.PasswordRepositoryServiceMock{InsertPasswordError: insertPasswordError, FetchAllByUserIdError: fetchAllByUserIdError},
 		&mock.PasswordSecurityServiceMock{EncryptionError: encryptionError, DecryptionError: decryptionError},
+		&mock.JwtAuthenticationServiceMock{},
 	)
 	suite.mutationResolver = resolver.Mutation()
 	suite.queryResolver = resolver.Query()
@@ -391,6 +477,7 @@ func injectRuntimeResolverServices(suite *SchemaResolverTestSuite) {
 			Argon2PasswordHasher: &security.PasswordHashService{},
 			AesPasswordCryptor:   &security.PasswordCryptoService{},
 		},
+		authentication.NewJwtAuthenticationService("issuer", []byte("signingKey")),
 	)
 	suite.mutationResolver = resolver.Mutation()
 	suite.queryResolver = resolver.Query()
