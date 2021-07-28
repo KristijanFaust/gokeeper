@@ -2,83 +2,63 @@ package gql
 
 import (
 	"context"
+	"errors"
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/KristijanFaust/gokeeper/app/authentication"
-	"github.com/KristijanFaust/gokeeper/app/config"
-	"github.com/KristijanFaust/gokeeper/app/database"
-	"github.com/KristijanFaust/gokeeper/app/database/repository"
 	"github.com/KristijanFaust/gokeeper/app/gql/generated"
 	"github.com/KristijanFaust/gokeeper/app/gql/model"
-	"github.com/KristijanFaust/gokeeper/app/security"
-	"github.com/KristijanFaust/gokeeper/app/utility/test/databaseutil"
-	"github.com/KristijanFaust/gokeeper/app/utility/test/mock"
-	"github.com/KristijanFaust/gokeeper/app/utility/test/testcontainersutil"
+	"github.com/KristijanFaust/gokeeper/app/utility/test/mockutil"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"github.com/upper/db/v4"
 	"github.com/vektah/gqlparser/v2/gqlerror"
-	"strconv"
 	"testing"
 )
 
-type SchemaResolverTestSuite struct {
+type schemaResolverTestSuite struct {
 	suite.Suite
-	session              *db.Session
-	isDatabaseUp         bool
-	isDatabaseMigrated   bool
-	mutationResolver     generated.MutationResolver
-	queryResolver        generated.QueryResolver
-	gqlgenRequestContext context.Context
+	resolver              Resolver
+	mutationResolver      generated.MutationResolver
+	queryResolver         generated.QueryResolver
+	graphqlRequestContext context.Context
 }
 
-func TestPasswordSuite(t *testing.T) {
-	suite.Run(t, new(SchemaResolverTestSuite))
+func TestSchemaResolverSuite(t *testing.T) {
+	suite.Run(t, new(schemaResolverTestSuite))
 }
 
-func (suite *SchemaResolverTestSuite) SetupSuite() {
-	suite.isDatabaseUp = testcontainersutil.DockerComposeUp()
-	databaseutil.GenerateTestDatasourceConfiguration()
-	suite.session = database.InitializeDatabaseConnection()
-	suite.isDatabaseMigrated = databaseutil.RunDatabaseMigrations()
-	injectRuntimeResolverServices(suite)
-	suite.gqlgenRequestContext = graphql.WithFieldContext(
-		context.WithValue(graphql.WithOperationContext(
-			context.Background(),
-			&graphql.OperationContext{}),
+func (suite *schemaResolverTestSuite) SetupSuite() {
+	suite.graphqlRequestContext = graphql.WithFieldContext(
+		context.WithValue(
+			graphql.WithOperationContext(context.Background(), &graphql.OperationContext{}),
 			"operation_context", []string{},
 		),
 		&graphql.FieldContext{},
 	)
 }
 
-func (suite *SchemaResolverTestSuite) TearDownSuite() {
-	testcontainersutil.DockerComposeDown()
-	database.CloseDatabaseConnection(suite.session)
-	config.ApplicationConfig = nil
+func (suite *schemaResolverTestSuite) SetupTest() {
+	injectDefaultMockedResolverServices(suite)
 }
 
 // CreateUser should successfully create a new user
-func (suite *SchemaResolverTestSuite) TestCreateUser() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
+func (suite *schemaResolverTestSuite) TestCreateUser() {
+	input := model.NewUser{Email: mockutil.DefaultEmail, Username: mockutil.DefaultUsername, Password: mockutil.DefaultPassword}
 
-	input := model.NewUser{Email: "testuser@email.com", Username: "testUsername", Password: "password"}
 	user, err := suite.mutationResolver.CreateUser(context.Background(), input)
-
 	assert.Nil(suite.T(), err, "User should be created without errors")
 
-	assert.NotNil(suite.T(), user.ID, "User should have an Id after creation")
+	assert.Equal(suite.T(), user.ID, mockutil.DefaultIdAsString)
 	assert.Equal(suite.T(), user.Email, input.Email)
 	assert.Equal(suite.T(), user.Username, input.Username)
 }
 
 // CreateUser should return error on failed input validation
-func (suite *SchemaResolverTestSuite) TestCreateUserValidation() {
+func (suite *schemaResolverTestSuite) TestCreateUserValidation() {
 	input := model.NewUser{Email: "invalidEmail", Username: "", Password: ""}
 	ctx := graphql.WithResponseContext(context.Background(), graphql.DefaultErrorPresenter, graphql.DefaultRecover)
-	user, err := suite.mutationResolver.CreateUser(ctx, input)
 
+	user, err := suite.mutationResolver.CreateUser(ctx, input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("validation error/s on user input"),
 		"Should return expected error when input validation for new user fails",
@@ -87,14 +67,11 @@ func (suite *SchemaResolverTestSuite) TestCreateUserValidation() {
 }
 
 // CreateUser should detect existing user emails
-func (suite *SchemaResolverTestSuite) TestCreateUserWithExistingEmail() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
-
-	input := model.NewUser{Email: "testexistinguser@email.com", Username: "testUsername", Password: "password"}
-	_, err := suite.mutationResolver.CreateUser(context.Background(), input)
-	assert.Nil(suite.T(), err, "User should be created without errors")
+func (suite *schemaResolverTestSuite) TestCreateUserWithExistingEmail() {
+	userRepositoryServiceMock := new(mockutil.UserRepositoryServiceMock)
+	userRepositoryServiceMock.On("InsertNewUser", mock.Anything).Return(nil, &pq.Error{Code: "23505"}).Times(1)
+	suite.resolver.userRepository = userRepositoryServiceMock
+	input := model.NewUser{Email: mockutil.DefaultEmail, Username: mockutil.DefaultUsername, Password: mockutil.DefaultPassword}
 
 	user, err := suite.mutationResolver.CreateUser(context.Background(), input)
 	assert.Equal(
@@ -105,45 +82,39 @@ func (suite *SchemaResolverTestSuite) TestCreateUserWithExistingEmail() {
 }
 
 // CreateUser should return expected error on unsuccessful user creation
-func (suite *SchemaResolverTestSuite) TestCreateUserWithError() {
-	injectMockedResolverServices(suite, true, false, false, false, false, false, false)
-	defer injectRuntimeResolverServices(suite)
+func (suite *schemaResolverTestSuite) TestCreateUserWithInsertError() {
+	userRepositoryServiceMock := new(mockutil.UserRepositoryServiceMock)
+	userRepositoryServiceMock.On("InsertNewUser", mock.Anything).Return(nil, errors.New(mockutil.MockedGenericErrorMessage)).Times(1)
+	suite.resolver.userRepository = userRepositoryServiceMock
+	input := model.NewUser{Email: mockutil.DefaultEmail, Username: mockutil.DefaultUsername, Password: mockutil.DefaultPassword}
 
-	input := model.NewUser{Email: "usercreationerror@email.com", Username: "testUsername", Password: "password"}
 	user, err := suite.mutationResolver.CreateUser(context.Background(), input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not create a new user"),
-		"Should return expected error when user email already exists",
+		"Should return expected error when insert to database fails",
 	)
 	assert.Nil(suite.T(), user, "Should not return any user data")
 }
 
 // CreatePassword should successfully create a new user password
-func (suite *SchemaResolverTestSuite) TestCreatePassword() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
+func (suite *schemaResolverTestSuite) TestCreatePassword() {
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
 
-	userInput := model.NewUser{Email: "testuserpass@email.com", Username: "testUsername", Password: "password"}
-	user, err := suite.mutationResolver.CreateUser(context.Background(), userInput)
-	assert.Nil(suite.T(), err, "User should be created without errors")
-
-	passwordInput := model.NewPassword{UserID: user.ID, Name: "testDomain", Password: "password"}
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), passwordInput)
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
 	assert.Nil(suite.T(), err, "Password should be created without errors")
 
-	assert.NotNil(suite.T(), password.ID, "Password should have an Id after creation")
-	assert.Equal(suite.T(), password.UserID, user.ID)
-	assert.Equal(suite.T(), password.Name, passwordInput.Name)
-	assert.Equal(suite.T(), password.Password, passwordInput.Password)
+	assert.Equal(suite.T(), password.ID, mockutil.DefaultIdAsString)
+	assert.Equal(suite.T(), password.UserID, mockutil.DefaultIdAsString)
+	assert.Equal(suite.T(), password.Name, input.Name)
+	assert.Equal(suite.T(), password.Password, input.Password)
 }
 
 // CreatePassword should return error on failed input validation
-func (suite *SchemaResolverTestSuite) TestCreatePasswordValidation() {
+func (suite *schemaResolverTestSuite) TestCreatePasswordValidation() {
 	input := model.NewPassword{UserID: "", Name: "", Password: ""}
 	ctx := graphql.WithResponseContext(context.Background(), graphql.DefaultErrorPresenter, graphql.DefaultRecover)
-	password, err := suite.mutationResolver.CreatePassword(ctx, input)
 
+	password, err := suite.mutationResolver.CreatePassword(ctx, input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("validation error/s on password input"),
 		"Should return expected error when input validation for new user fails",
@@ -152,13 +123,10 @@ func (suite *SchemaResolverTestSuite) TestCreatePasswordValidation() {
 }
 
 // CreatePassword should return expected error when userId is of an unexpected value
-func (suite *SchemaResolverTestSuite) TestCreatePasswordWithUnexpectedUserIdValue() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
+func (suite *schemaResolverTestSuite) TestCreatePasswordWithUnexpectedUserIdValue() {
+	input := model.NewPassword{UserID: "invalidId", Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
 
-	passwordInput := model.NewPassword{UserID: "unexpectedIdValue", Name: "testDomain", Password: "password"}
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), passwordInput)
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not create a new password"),
 		"Should return expected error when user id is of an unexpected value",
@@ -166,93 +134,93 @@ func (suite *SchemaResolverTestSuite) TestCreatePasswordWithUnexpectedUserIdValu
 	assert.Nil(suite.T(), password, "Should not return any password data")
 }
 
-// CreatePassword should return expected error when user doesn't exist
-func (suite *SchemaResolverTestSuite) TestCreatePasswordWithNonexistentUser() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
+// CreatePassword should return expected error when user's master password fetch fails
+func (suite *schemaResolverTestSuite) TestCreatePasswordWithMasterPasswordFetchError() {
+	userRepositoryServiceMock := new(mockutil.UserRepositoryServiceMock)
+	userRepositoryServiceMock.On("FetchMasterPasswordByUserId", mock.Anything, mock.Anything).Return(
+		errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.userRepository = userRepositoryServiceMock
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
 
-	passwordInput := model.NewPassword{UserID: "500", Name: "testDomain", Password: "password"}
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), passwordInput)
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not create a new password"),
-		"Should return expected error when user doesn't exist",
+		"Should return expected error when user's master password fetch fails",
 	)
 	assert.Nil(suite.T(), password, "Should not return any password data")
 }
 
 // CreatePassword should return expected error when insert to database fails
-func (suite *SchemaResolverTestSuite) TestCreatePasswordWithInsertError() {
-	injectMockedResolverServices(suite, false, false, false, true, false, false, false)
-	defer injectRuntimeResolverServices(suite)
+func (suite *schemaResolverTestSuite) TestCreatePasswordWithInsertError() {
+	passwordRepositoryServiceMock := new(mockutil.PasswordRepositoryServiceMock)
+	passwordRepositoryServiceMock.On("InsertNewPassword", mock.Anything).Return(
+		nil, errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.passwordRepository = passwordRepositoryServiceMock
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
 
-	passwordInput := model.NewPassword{UserID: "1", Name: "testDomain", Password: "password"}
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), passwordInput)
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not create a new password"),
-		"Should return expected error when user doesn't exist",
+		"Should return expected error when insert to database fails",
 	)
 	assert.Nil(suite.T(), password, "Should not return any password data")
 }
 
 // CreatePassword should return expected error on unsuccessful password encryption
-func (suite *SchemaResolverTestSuite) TestCreatePasswordWithEncryptionError() {
-	injectMockedResolverServices(suite, false, false, false, false, false, true, false)
-	defer injectRuntimeResolverServices(suite)
+func (suite *schemaResolverTestSuite) TestCreatePasswordWithEncryptionError() {
+	passwordSecurityServiceMock := new(mockutil.PasswordSecurityServiceMock)
+	passwordSecurityServiceMock.On("EncryptWithAes", mock.Anything, mock.Anything).Return(
+		nil, errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.passwordSecurityService = passwordSecurityServiceMock
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
 
-	passwordInput := model.NewPassword{UserID: "1", Name: "testDomain", Password: "password"}
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), passwordInput)
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not create a new password"),
-		"Should return expected error when user doesn't exist",
+		"Should return expected error when password encryption fails",
 	)
 	assert.Nil(suite.T(), password, "Should not return any password data")
 }
 
 // SignIn should successfully sign in a user
-func (suite *SchemaResolverTestSuite) TestSignIn() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
+func (suite *schemaResolverTestSuite) TestSignIn() {
+	input := model.UserSignIn{Email: mockutil.DefaultEmail, Password: mockutil.DefaultPassword}
 
-	userInput := model.NewUser{Email: "testsignin@email.com", Username: "testUsername", Password: "password"}
-	user, err := suite.mutationResolver.CreateUser(context.Background(), userInput)
-
-	userSignInData := model.UserSignIn{Email: "testsignin@email.com", Password: "password"}
-	token, err := suite.mutationResolver.SignIn(context.Background(), userSignInData)
-
-	assert.Nil(suite.T(), err)
-
-	userIdAsUint64, _ := strconv.ParseUint(user.ID, 10, 64)
-	replicatedJwtTokenGenerator := authentication.NewJwtAuthenticationService("issuer", []byte("signingKey"))
-	generatedToken, _ := replicatedJwtTokenGenerator.GenerateJwt(userIdAsUint64, int64(token.ExpireAt))
-	assert.Equal(suite.T(), token.Token, generatedToken)
+	token, err := suite.mutationResolver.SignIn(context.Background(), input)
+	assert.Nil(suite.T(), err, "User should sign in without any errors")
+	assert.Equal(suite.T(), token.Token, mockutil.MockedJwtToken)
 }
 
 // SignIn should return expected error when a non existing user is trying to sign in
-func (suite *SchemaResolverTestSuite) TestSignInWithNonExistingUser() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
+func (suite *schemaResolverTestSuite) TestSignInWithNonExistingUser() {
+	userRepositoryServiceMock := new(mockutil.UserRepositoryServiceMock)
+	userRepositoryServiceMock.On("FetchByEmail", mock.Anything, mock.Anything, []string(nil)).Return(
+		errors.New("upper: no more rows in this result set"),
+	).Times(1)
+	suite.resolver.userRepository = userRepositoryServiceMock
+	input := model.UserSignIn{Email: mockutil.DefaultEmail, Password: mockutil.DefaultPassword}
 
-	userSignInData := model.UserSignIn{Email: "nonexistingusersignin@email.com", Password: "password"}
-	token, err := suite.mutationResolver.SignIn(context.Background(), userSignInData)
-
+	token, err := suite.mutationResolver.SignIn(context.Background(), input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("user doesn't exist"),
-		"Should return expected error when non existing email is trying to sign in",
+		"Should return expected error when a non existing user is signing in",
 	)
 	assert.Nil(suite.T(), token, "Token should not be generated")
 }
 
 // SignIn should return an error when fetching user by email fails
-func (suite *SchemaResolverTestSuite) TestSignInWithFetchUserByEmailError() {
-	injectMockedResolverServices(suite, false, true, false, false, false, false, false)
-	defer injectRuntimeResolverServices(suite)
+func (suite *schemaResolverTestSuite) TestSignInWithFetchUserByEmailError() {
+	userRepositoryServiceMock := new(mockutil.UserRepositoryServiceMock)
+	userRepositoryServiceMock.On("FetchByEmail", mock.Anything, mock.Anything, []string(nil)).Return(
+		errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.userRepository = userRepositoryServiceMock
+	input := model.UserSignIn{Email: mockutil.DefaultEmail, Password: mockutil.DefaultPassword}
 
-	userSignInData := model.UserSignIn{Email: "testsignin@email.com", Password: "password"}
-	token, err := suite.mutationResolver.SignIn(context.Background(), userSignInData)
-
+	token, err := suite.mutationResolver.SignIn(context.Background(), input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not sign in"),
 		"Should return expected error when fetch user by email fails",
@@ -260,31 +228,31 @@ func (suite *SchemaResolverTestSuite) TestSignInWithFetchUserByEmailError() {
 	assert.Nil(suite.T(), token, "Token should not be generated")
 }
 
-// TODO - Rework test mocks so this test can pass
-/*
 // SignIn should return expected error when user gives wrong password
-func (suite *SchemaResolverTestSuite) TestSignInWithWrongPassword() {
-	injectMockedResolverServices(suite, false, false, false, false, false, false, false)
-	defer injectRuntimeResolverServices(suite)
+func (suite *schemaResolverTestSuite) TestSignInWithWrongPassword() {
+	passwordSecurityServiceMock := new(mockutil.PasswordSecurityServiceMock)
+	passwordSecurityServiceMock.On("HashWithArgon2id", mock.Anything).Return([]byte("WrongPassword")).Times(1)
+	suite.resolver.passwordSecurityService = passwordSecurityServiceMock
+	input := model.UserSignIn{Email: mockutil.DefaultEmail, Password: mockutil.DefaultPassword}
 
-	userSignInData := model.UserSignIn{Email: "testsignin@email.com", Password: "password"}
-	token, err := suite.mutationResolver.SignIn(context.Background(), userSignInData)
-
+	token, err := suite.mutationResolver.SignIn(context.Background(), input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("wrong password"),
-		"Should return expected error when fetch user by email fails",
+		"Should return expected error when user enters wrong password",
 	)
 	assert.Nil(suite.T(), token, "Token should not be generated")
 }
-*/
+
 // SignIn should return expected error when jwt generation fails
-func (suite *SchemaResolverTestSuite) TestSignInWithGenerateJwtError() {
-	injectMockedResolverServices(suite, false, false, false, false, false, false, false)
-	defer injectRuntimeResolverServices(suite)
+func (suite *schemaResolverTestSuite) TestSignInWithGenerateJwtError() {
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GenerateJwt", mock.Anything, mock.Anything).Return(
+		"", errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+	input := model.UserSignIn{Email: mockutil.DefaultEmail, Password: mockutil.DefaultPassword}
 
-	userSignInData := model.UserSignIn{Email: "testsignin@email.com", Password: "MockedHashedMasterPasswordThatIsAtLeast32BytesLong"}
-	token, err := suite.mutationResolver.SignIn(context.Background(), userSignInData)
-
+	token, err := suite.mutationResolver.SignIn(context.Background(), input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not sign in"),
 		"Should return expected error when jwt generation fails",
@@ -292,17 +260,14 @@ func (suite *SchemaResolverTestSuite) TestSignInWithGenerateJwtError() {
 	assert.Nil(suite.T(), token, "Token should not be generated")
 }
 
+/*
 // QueryUserByEmail should successfully query for a specific user by email
-func (suite *SchemaResolverTestSuite) TestQueryUserByEmail() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
-
+func (suite *schemaResolverTestSuite) TestQueryUserByEmail() {
 	userInput := model.NewUser{Email: "testqueryuser@email.com", Username: "testUsername", Password: "password"}
 	user, err := suite.mutationResolver.CreateUser(context.Background(), userInput)
 	assert.Nil(suite.T(), err, "Should create user without errors")
 
-	queriedUser, err := suite.queryResolver.QueryUserByEmail(suite.gqlgenRequestContext, user.Email)
+	queriedUser, err := suite.queryResolver.QueryUserByEmail(suite.graphqlRequestContext, user.Email)
 	assert.Nil(suite.T(), err, "Should fetch user without errors")
 
 	assert.Equal(suite.T(), queriedUser.ID, user.ID)
@@ -311,12 +276,8 @@ func (suite *SchemaResolverTestSuite) TestQueryUserByEmail() {
 }
 
 // QueryUserByEmail should return expected error when user doesn't exist
-func (suite *SchemaResolverTestSuite) TestQueryUserByEmailWithNonexistentUser() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
-
-	user, err := suite.queryResolver.QueryUserByEmail(suite.gqlgenRequestContext, "nonexistentmail@mail.com")
+func (suite *schemaResolverTestSuite) TestQueryUserByEmailWithNonexistentUser() {
+	user, err := suite.queryResolver.QueryUserByEmail(suite.graphqlRequestContext, "nonexistentmail@mail.com")
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("user doesn't exist"),
 		"Should return expected error when user email already exists",
@@ -325,79 +286,46 @@ func (suite *SchemaResolverTestSuite) TestQueryUserByEmailWithNonexistentUser() 
 }
 
 // QueryUserByEmail should return expected error on unsuccessful user fetch
-func (suite *SchemaResolverTestSuite) TestQueryUserByEmailWithError() {
-	injectMockedResolverServices(suite, false, true, false, false, false, false, false)
-	defer injectRuntimeResolverServices(suite)
+func (suite *schemaResolverTestSuite) TestQueryUserByEmailWithError() {
 
-	user, err := suite.queryResolver.QueryUserByEmail(suite.gqlgenRequestContext, "testemail@mail.com")
+	user, err := suite.queryResolver.QueryUserByEmail(suite.graphqlRequestContext, "testemail@mail.com")
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not fetch user"),
 		"Should return expected error when user email already exists",
 	)
 	assert.Nil(suite.T(), user, "Should not return any user data")
 }
+*/
 
 // QueryUserPasswords should successfully query for all user's passwords
-func (suite *SchemaResolverTestSuite) TestQueryUserPasswords() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
+func (suite *schemaResolverTestSuite) TestQueryUserPasswords() {
+	passwordSecurityServiceMock := new(mockutil.PasswordSecurityServiceMock)
+	passwordSecurityServiceMock.On("DecryptWithAes", mock.Anything, mock.Anything).Return("DecryptedPasswordMock", nil).Times(2)
+	suite.resolver.passwordSecurityService = passwordSecurityServiceMock
 
-	userInput := model.NewUser{Email: "testquerypasswords@email.com", Username: "testUsername", Password: "password"}
-	user, err := suite.mutationResolver.CreateUser(context.Background(), userInput)
-	assert.Nil(suite.T(), err, "Should create user without errors")
-
-	additionalUserInput := model.NewUser{Email: "testquerypasswords2@email.com", Username: "testUsername", Password: "password"}
-	additionalUser, err := suite.mutationResolver.CreateUser(context.Background(), additionalUserInput)
-	assert.Nil(suite.T(), err, "Should create user without errors")
-
-	passwordInput := model.NewPassword{UserID: user.ID, Name: "testDomain1", Password: "password1"}
-	password1, err := suite.mutationResolver.CreatePassword(context.Background(), passwordInput)
-	assert.Nil(suite.T(), err, "Should create password without errors")
-	passwordInput = model.NewPassword{UserID: user.ID, Name: "testDomain2", Password: "password2"}
-	password2, err := suite.mutationResolver.CreatePassword(context.Background(), passwordInput)
-	assert.Nil(suite.T(), err, "Should create password without errors")
-
-	passwordInput = model.NewPassword{UserID: additionalUser.ID, Name: "testDomain3", Password: "password3"}
-	_, err = suite.mutationResolver.CreatePassword(context.Background(), passwordInput)
-	assert.Nil(suite.T(), err, "Should create password without errors")
-
-	passwords, err := suite.queryResolver.QueryUserPasswords(suite.gqlgenRequestContext, user.ID)
+	passwords, err := suite.queryResolver.QueryUserPasswords(suite.graphqlRequestContext, mockutil.DefaultIdAsString)
 	assert.Nil(suite.T(), err, "Should fetch passwords without errors")
 
 	assert.Equal(suite.T(), len(passwords), 2, "Query should fetch exactly two passwords")
 
-	assert.Equal(suite.T(), passwords[0].Name, password1.Name)
-	assert.Equal(suite.T(), passwords[1].Name, password2.Name)
-	assert.Equal(suite.T(), passwords[0].Password, password1.Password)
-	assert.Equal(suite.T(), passwords[1].Password, password2.Password)
+	assert.Equal(suite.T(), passwords[0].Name, "Domain1")
+	assert.Equal(suite.T(), passwords[1].Name, "Domain2")
+	assert.Equal(suite.T(), passwords[0].Password, mockutil.MockedDecryptedPassword)
+	assert.Equal(suite.T(), passwords[1].Password, mockutil.MockedDecryptedPassword)
 	for _, password := range passwords {
-		assert.Equal(suite.T(), password.UserID, user.ID)
+		assert.Equal(suite.T(), password.UserID, mockutil.DefaultIdAsString)
 	}
 }
 
 // QueryUserPasswords should should return empty slice when user has got no passwords
-func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithoutUserPasswords() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
-
-	userInput := model.NewUser{Email: "testuserwithoutpasswords@email.com", Username: "testUsername", Password: "password"}
-	user, err := suite.mutationResolver.CreateUser(context.Background(), userInput)
-	assert.Nil(suite.T(), err, "Should create user without errors")
-
-	passwords, err := suite.queryResolver.QueryUserPasswords(suite.gqlgenRequestContext, user.ID)
-
+func (suite *schemaResolverTestSuite) TestQueryUserPasswordsWithoutUserPasswords() {
+	passwords, err := suite.queryResolver.QueryUserPasswords(suite.graphqlRequestContext, "2")
 	assert.Nil(suite.T(), err, "Should fetch passwords without errors")
 	assert.Nil(suite.T(), passwords, "Should return nil passwords slice")
 }
 
 // QueryUserPasswords should should return expected error when userId is of an unexpected value
-func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithUnexpectedUserIdValue() {
-	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
-		suite.T().Skip("Skipping test since database container is not ready")
-	}
-
+func (suite *schemaResolverTestSuite) TestQueryUserPasswordsWithUnexpectedUserIdValue() {
 	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), "invalidUserId")
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not fetch user's passwords"),
@@ -407,78 +335,62 @@ func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithUnexpectedUserId
 }
 
 // QueryUserPasswords should return expected error on unsuccessful user's master password fetch
-func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithMasterPasswordFetchError() {
-	injectMockedResolverServices(suite, false, false, true, false, false, false, false)
-	defer injectRuntimeResolverServices(suite)
+func (suite *schemaResolverTestSuite) TestQueryUserPasswordsWithMasterPasswordFetchError() {
+	userRepositoryServiceMock := new(mockutil.UserRepositoryServiceMock)
+	userRepositoryServiceMock.On("FetchMasterPasswordByUserId", mock.Anything, mock.Anything).Return(
+		errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.userRepository = userRepositoryServiceMock
 
-	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), "1")
+	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), mockutil.DefaultIdAsString)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not fetch user's passwords"),
-		"Should return expected error when user email already exists",
+		"Should return expected error when user master password fetch fails",
 	)
-	assert.Nil(suite.T(), passwords, "Should not return any user data")
+	assert.Nil(suite.T(), passwords, "Should not return any passwords data")
 }
 
 // QueryUserPasswords should return expected error on unsuccessful user's passwords fetch
-func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithFetchError() {
-	injectMockedResolverServices(suite, false, false, false, false, true, false, false)
-	defer injectRuntimeResolverServices(suite)
+func (suite *schemaResolverTestSuite) TestQueryUserPasswordsWithFetchError() {
+	passwordRepositoryServiceMock := new(mockutil.PasswordRepositoryServiceMock)
+	passwordRepositoryServiceMock.On("FetchAllByUserId", mock.Anything, mock.Anything, mock.Anything).Return(
+		errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.passwordRepository = passwordRepositoryServiceMock
 
-	passwords, err := suite.queryResolver.QueryUserPasswords(suite.gqlgenRequestContext, "1")
+	passwords, err := suite.queryResolver.QueryUserPasswords(suite.graphqlRequestContext, mockutil.DefaultIdAsString)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not fetch user's passwords"),
-		"Should return expected error when user email already exists",
+		"Should return expected error when user's passwords fetch fails",
 	)
-	assert.Nil(suite.T(), passwords, "Should not return any user data")
+	assert.Nil(suite.T(), passwords, "Should not return any password data")
 }
 
 // QueryUserPasswords should return expected error on unsuccessful user's passwords decryption
-func (suite *SchemaResolverTestSuite) TestQueryUserPasswordsWithDecryptionError() {
-	injectMockedResolverServices(suite, false, false, false, false, false, false, true)
-	defer injectRuntimeResolverServices(suite)
+func (suite *schemaResolverTestSuite) TestQueryUserPasswordsWithDecryptionError() {
+	passwordSecurityServiceMock := new(mockutil.PasswordSecurityServiceMock)
+	passwordSecurityServiceMock.On("DecryptWithAes", mock.Anything, mock.Anything).Return(
+		"", errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.passwordSecurityService = passwordSecurityServiceMock
 
-	passwords, err := suite.queryResolver.QueryUserPasswords(suite.gqlgenRequestContext, "1")
+	passwords, err := suite.queryResolver.QueryUserPasswords(suite.graphqlRequestContext, mockutil.DefaultIdAsString)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not fetch user's passwords"),
-		"Should return expected error when user email already exists",
+		"Should return expected error when user's password decrytion fails",
 	)
 	assert.Nil(suite.T(), passwords, "Should not return any user data")
 }
 
-func injectMockedResolverServices(
-	suite *SchemaResolverTestSuite,
-	insertNewUserError bool,
-	fetchByEmailError bool,
-	fetchMasterPasswordByUserIdError bool,
-	insertPasswordError bool,
-	fetchAllByUserIdError bool,
-	encryptionError bool,
-	decryptionError bool,
-) {
+func injectDefaultMockedResolverServices(suite *schemaResolverTestSuite) {
 	resolver := NewResolver(
-		&mock.UserRepositoryServiceMock{
-			InsertNewUserError:               insertNewUserError,
-			FetchByEmailError:                fetchByEmailError,
-			FetchMasterPasswordByUserIdError: fetchMasterPasswordByUserIdError,
-		},
-		&mock.PasswordRepositoryServiceMock{InsertPasswordError: insertPasswordError, FetchAllByUserIdError: fetchAllByUserIdError},
-		&mock.PasswordSecurityServiceMock{EncryptionError: encryptionError, DecryptionError: decryptionError},
-		&mock.JwtAuthenticationServiceMock{},
+		mockutil.DefaultUserRepositoryServiceMock(),
+		mockutil.DefaultPasswordRepositoryServiceMock(),
+		mockutil.DefaultPasswordSecurityServiceMock(),
+		mockutil.DefaultJwtAuthenticationServiceMock(),
 	)
-	suite.mutationResolver = resolver.Mutation()
-	suite.queryResolver = resolver.Query()
-}
+	suite.resolver = *resolver
 
-func injectRuntimeResolverServices(suite *SchemaResolverTestSuite) {
-	resolver := NewResolver(
-		repository.NewUserRepositoryService(suite.session),
-		repository.NewPasswordRepositoryService(suite.session),
-		&security.PasswordSecurityService{
-			Argon2PasswordHasher: &security.PasswordHashService{},
-			AesPasswordCryptor:   &security.PasswordCryptoService{},
-		},
-		authentication.NewJwtAuthenticationService("issuer", []byte("signingKey")),
-	)
-	suite.mutationResolver = resolver.Mutation()
-	suite.queryResolver = resolver.Query()
+	suite.mutationResolver = suite.resolver.Mutation()
+	suite.queryResolver = suite.resolver.Query()
 }
