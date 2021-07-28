@@ -16,6 +16,11 @@ type Token {
   expireAt: Int!
 }
 
+type UserWithToken {
+  user: User!
+  token: Token!
+}
+
 input NewUser {
   email: String!
   username: String!
@@ -34,12 +39,11 @@ input NewPassword {
 }
 
 type Mutation {
-  createUser(input: NewUser!): User!
+  signUp(input: NewUser!): User!
   createPassword(input: NewPassword!): Password!
-  signIn(input: UserSignIn!): Token!
+  signIn(input: UserSignIn!): UserWithToken!
 }
 
 type Query {
-  queryUserByEmail(email: String!): User!
   queryUserPasswords(userId: String!): [Password]!
 }

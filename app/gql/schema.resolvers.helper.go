@@ -10,7 +10,6 @@ import (
 const (
 	userCreationErrorMessage          = "could not create a new user"
 	passwordCreationErrorMessage      = "could not create a new password"
-	userFetchErrorMessage             = "could not fetch user"
 	userPasswordsFetchErrorMessage    = "could not fetch user's passwords"
 	signInErrorMessage                = "could not sign in"
 	existingEmailErrorMessage         = "the e-mail address is already taken"

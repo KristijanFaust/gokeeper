@@ -24,3 +24,8 @@ type UserSignIn struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+
+type UserWithToken struct {
+	User  *User  `json:"user"`
+	Token *Token `json:"token"`
+}

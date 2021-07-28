@@ -19,7 +19,7 @@ import (
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
+func (r *mutationResolver) SignUp(ctx context.Context, input model.NewUser) (*model.User, error) {
 	validationErrors := manageValidationsErrors(r.validator.Struct(input), ctx)
 	if validationErrors != nil {
 		return nil, gqlerror.Errorf("validation error/s on user input")
@@ -89,7 +89,7 @@ func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPa
 	return insertedPassword, nil
 }
 
-func (r *mutationResolver) SignIn(ctx context.Context, input model.UserSignIn) (*model.Token, error) {
+func (r *mutationResolver) SignIn(ctx context.Context, input model.UserSignIn) (*model.UserWithToken, error) {
 	fetchedUser := databaseModel.User{}
 	err := r.userRepository.FetchByEmail(&fetchedUser, input.Email, nil)
 	if err != nil {
@@ -104,30 +104,15 @@ func (r *mutationResolver) SignIn(ctx context.Context, input model.UserSignIn) (
 	}
 
 	expireAt := int(time.Now().Add(time.Minute * 15).Unix())
-	token, err := r.authenticationService.GenerateJwt(fetchedUser.Id, int64(expireAt))
+	jwt, err := r.authenticationService.GenerateJwt(fetchedUser.Id, int64(expireAt))
 	if err != nil {
 		return nil, gqlerror.Errorf(signInErrorMessage)
 	}
 
-	return &model.Token{Token: token, ExpireAt: expireAt}, nil
-}
+	user := &model.User{ID: strconv.FormatUint(fetchedUser.Id, 10), Email: fetchedUser.Email, Username: fetchedUser.Username}
+	token := &model.Token{Token: jwt, ExpireAt: expireAt}
 
-func (r *queryResolver) QueryUserByEmail(ctx context.Context, email string) (*model.User, error) {
-	fetchedUser := databaseModel.User{}
-	err := r.userRepository.FetchByEmail(&fetchedUser, email, graphql.CollectAllFields(ctx))
-	if err != nil {
-		if strings.Contains(err.Error(), "upper: no more rows in this result set") {
-			return nil, gqlerror.Errorf(queryNonExistingEmailErrorMessage)
-		}
-		return nil, gqlerror.Errorf(userFetchErrorMessage)
-	}
-
-	user := &model.User{
-		ID:       strconv.FormatUint(fetchedUser.Id, 10),
-		Email:    fetchedUser.Email,
-		Username: fetchedUser.Username,
-	}
-	return user, nil
+	return &model.UserWithToken{User: user, Token: token}, nil
 }
 
 func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) ([]*model.Password, error) {

@@ -41,11 +41,11 @@ func (suite *schemaResolverTestSuite) SetupTest() {
 	injectDefaultMockedResolverServices(suite)
 }
 
-// CreateUser should successfully create a new user
-func (suite *schemaResolverTestSuite) TestCreateUser() {
+// SignUp should successfully create a new user
+func (suite *schemaResolverTestSuite) TestSignUp() {
 	input := model.NewUser{Email: mockutil.DefaultEmail, Username: mockutil.DefaultUsername, Password: mockutil.DefaultPassword}
 
-	user, err := suite.mutationResolver.CreateUser(context.Background(), input)
+	user, err := suite.mutationResolver.SignUp(context.Background(), input)
 	assert.Nil(suite.T(), err, "User should be created without errors")
 
 	assert.Equal(suite.T(), user.ID, mockutil.DefaultIdAsString)
@@ -53,12 +53,12 @@ func (suite *schemaResolverTestSuite) TestCreateUser() {
 	assert.Equal(suite.T(), user.Username, input.Username)
 }
 
-// CreateUser should return error on failed input validation
-func (suite *schemaResolverTestSuite) TestCreateUserValidation() {
+// SignUp should return error on failed input validation
+func (suite *schemaResolverTestSuite) TestSignUpValidation() {
 	input := model.NewUser{Email: "invalidEmail", Username: "", Password: ""}
 	ctx := graphql.WithResponseContext(context.Background(), graphql.DefaultErrorPresenter, graphql.DefaultRecover)
 
-	user, err := suite.mutationResolver.CreateUser(ctx, input)
+	user, err := suite.mutationResolver.SignUp(ctx, input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("validation error/s on user input"),
 		"Should return expected error when input validation for new user fails",
@@ -66,14 +66,14 @@ func (suite *schemaResolverTestSuite) TestCreateUserValidation() {
 	assert.Nil(suite.T(), user, "Should not return any user data")
 }
 
-// CreateUser should detect existing user emails
-func (suite *schemaResolverTestSuite) TestCreateUserWithExistingEmail() {
+// SignUp should detect existing user emails
+func (suite *schemaResolverTestSuite) TestSignUpWithExistingEmail() {
 	userRepositoryServiceMock := new(mockutil.UserRepositoryServiceMock)
 	userRepositoryServiceMock.On("InsertNewUser", mock.Anything).Return(nil, &pq.Error{Code: "23505"}).Times(1)
 	suite.resolver.userRepository = userRepositoryServiceMock
 	input := model.NewUser{Email: mockutil.DefaultEmail, Username: mockutil.DefaultUsername, Password: mockutil.DefaultPassword}
 
-	user, err := suite.mutationResolver.CreateUser(context.Background(), input)
+	user, err := suite.mutationResolver.SignUp(context.Background(), input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("the e-mail address is already taken"),
 		"Should return expected error when user email already exists",
@@ -81,14 +81,14 @@ func (suite *schemaResolverTestSuite) TestCreateUserWithExistingEmail() {
 	assert.Nil(suite.T(), user, "Should not return any user data")
 }
 
-// CreateUser should return expected error on unsuccessful user creation
-func (suite *schemaResolverTestSuite) TestCreateUserWithInsertError() {
+// SignUp should return expected error on unsuccessful user creation
+func (suite *schemaResolverTestSuite) TestSignUpWithInsertError() {
 	userRepositoryServiceMock := new(mockutil.UserRepositoryServiceMock)
 	userRepositoryServiceMock.On("InsertNewUser", mock.Anything).Return(nil, errors.New(mockutil.MockedGenericErrorMessage)).Times(1)
 	suite.resolver.userRepository = userRepositoryServiceMock
 	input := model.NewUser{Email: mockutil.DefaultEmail, Username: mockutil.DefaultUsername, Password: mockutil.DefaultPassword}
 
-	user, err := suite.mutationResolver.CreateUser(context.Background(), input)
+	user, err := suite.mutationResolver.SignUp(context.Background(), input)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not create a new user"),
 		"Should return expected error when insert to database fails",
@@ -189,9 +189,15 @@ func (suite *schemaResolverTestSuite) TestCreatePasswordWithEncryptionError() {
 func (suite *schemaResolverTestSuite) TestSignIn() {
 	input := model.UserSignIn{Email: mockutil.DefaultEmail, Password: mockutil.DefaultPassword}
 
-	token, err := suite.mutationResolver.SignIn(context.Background(), input)
+	userWithToken, err := suite.mutationResolver.SignIn(context.Background(), input)
 	assert.Nil(suite.T(), err, "User should sign in without any errors")
-	assert.Equal(suite.T(), token.Token, mockutil.MockedJwtToken)
+
+	assert.Equal(suite.T(), userWithToken.Token.Token, mockutil.MockedJwtToken)
+	assert.NotNil(suite.T(), userWithToken.Token.ExpireAt)
+
+	assert.Equal(suite.T(), userWithToken.User.ID, mockutil.DefaultIdAsString)
+	assert.Equal(suite.T(), userWithToken.User.Email, mockutil.DefaultEmail)
+	assert.Equal(suite.T(), userWithToken.User.Username, mockutil.DefaultUsername)
 }
 
 // SignIn should return expected error when a non existing user is trying to sign in
@@ -259,43 +265,6 @@ func (suite *schemaResolverTestSuite) TestSignInWithGenerateJwtError() {
 	)
 	assert.Nil(suite.T(), token, "Token should not be generated")
 }
-
-/*
-// QueryUserByEmail should successfully query for a specific user by email
-func (suite *schemaResolverTestSuite) TestQueryUserByEmail() {
-	userInput := model.NewUser{Email: "testqueryuser@email.com", Username: "testUsername", Password: "password"}
-	user, err := suite.mutationResolver.CreateUser(context.Background(), userInput)
-	assert.Nil(suite.T(), err, "Should create user without errors")
-
-	queriedUser, err := suite.queryResolver.QueryUserByEmail(suite.graphqlRequestContext, user.Email)
-	assert.Nil(suite.T(), err, "Should fetch user without errors")
-
-	assert.Equal(suite.T(), queriedUser.ID, user.ID)
-	assert.Equal(suite.T(), queriedUser.Email, user.Email)
-	assert.Equal(suite.T(), queriedUser.Username, user.Username)
-}
-
-// QueryUserByEmail should return expected error when user doesn't exist
-func (suite *schemaResolverTestSuite) TestQueryUserByEmailWithNonexistentUser() {
-	user, err := suite.queryResolver.QueryUserByEmail(suite.graphqlRequestContext, "nonexistentmail@mail.com")
-	assert.Equal(
-		suite.T(), err, gqlerror.Errorf("user doesn't exist"),
-		"Should return expected error when user email already exists",
-	)
-	assert.Nil(suite.T(), user, "Should not return any user data")
-}
-
-// QueryUserByEmail should return expected error on unsuccessful user fetch
-func (suite *schemaResolverTestSuite) TestQueryUserByEmailWithError() {
-
-	user, err := suite.queryResolver.QueryUserByEmail(suite.graphqlRequestContext, "testemail@mail.com")
-	assert.Equal(
-		suite.T(), err, gqlerror.Errorf("could not fetch user"),
-		"Should return expected error when user email already exists",
-	)
-	assert.Nil(suite.T(), user, "Should not return any user data")
-}
-*/
 
 // QueryUserPasswords should successfully query for all user's passwords
 func (suite *schemaResolverTestSuite) TestQueryUserPasswords() {
@@ -377,7 +346,7 @@ func (suite *schemaResolverTestSuite) TestQueryUserPasswordsWithDecryptionError(
 	passwords, err := suite.queryResolver.QueryUserPasswords(suite.graphqlRequestContext, mockutil.DefaultIdAsString)
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not fetch user's passwords"),
-		"Should return expected error when user's password decrytion fails",
+		"Should return expected error when user's password decryption fails",
 	)
 	assert.Nil(suite.T(), passwords, "Should not return any user data")
 }
