@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"github.com/KristijanFaust/gokeeper/app/config"
 	"github.com/KristijanFaust/gokeeper/app/database"
 	"github.com/KristijanFaust/gokeeper/app/database/model"
 	"github.com/KristijanFaust/gokeeper/app/utility/test/databaseutil"
@@ -26,16 +25,15 @@ func TestUserSuite(t *testing.T) {
 
 func (suite *UserRepositoryTestSuite) SetupSuite() {
 	suite.isDatabaseUp = testcontainersutil.DockerComposeUp()
-	databaseutil.GenerateTestDatasourceConfiguration()
-	suite.session = database.InitializeDatabaseConnection()
-	suite.isDatabaseMigrated = databaseutil.RunDatabaseMigrations()
+	databaseConfiguration := databaseutil.GenerateTestDatasourceConfiguration()
+	suite.session = database.InitializeDatabaseConnection(databaseConfiguration)
+	suite.isDatabaseMigrated = databaseutil.RunDatabaseMigrations(databaseConfiguration)
 	suite.userRepository = NewUserRepositoryService(suite.session)
 }
 
 func (suite *UserRepositoryTestSuite) TearDownSuite() {
 	testcontainersutil.DockerComposeDown()
 	database.CloseDatabaseConnection(suite.session)
-	config.ApplicationConfig = nil
 }
 
 // InsertNewUser should successfully insert a new user in the database

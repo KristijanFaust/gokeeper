@@ -11,9 +11,8 @@ import (
 // LoadConfiguration should successfully load to ApplicationConfig values from the default .yml file,
 // and the current state of the configuration file should be valid.
 func TestLoadConfiguration(t *testing.T) {
-	assert.Nil(t, ApplicationConfig, "Application configuration should not be setup yet")
-	LoadConfiguration("../../config.yml")
-	assert.NotNil(t, ApplicationConfig, "Application configuration should be setup now")
+	config := LoadConfiguration("../../config.yml")
+	assert.NotNil(t, config, "Application configuration should be setup now")
 }
 
 // LoadConfiguration should panic on any error while reading from the given configuration file

@@ -18,13 +18,13 @@ import (
 	"syscall"
 )
 
-func Run(serverDoneWaitGroup *sync.WaitGroup, session *db.Session) *http.Server {
-	if config.ApplicationConfig == nil || reflect.ValueOf(config.ApplicationConfig.Server).IsZero() {
-		log.Panic("Server configuration not loaded, cannot start server")
+func Run(applicationConfig *config.Config, serverDoneWaitGroup *sync.WaitGroup, session *db.Session) *http.Server {
+	if reflect.ValueOf(applicationConfig).IsZero() {
+		log.Panic("Application configuration not loaded, cannot start server")
 	}
 
-	hostname := config.ApplicationConfig.Server.Hostname
-	portNumber := config.ApplicationConfig.Server.Port
+	hostname := applicationConfig.Server.Hostname
+	portNumber := applicationConfig.Server.Port
 	log.Printf("Starting GoKeeper server on http://%s:%s", hostname, portNumber)
 
 	router := chi.NewRouter()
@@ -37,13 +37,13 @@ func Run(serverDoneWaitGroup *sync.WaitGroup, session *db.Session) *http.Server 
 				AesPasswordCryptor:   &security.PasswordCryptoService{},
 			},
 			authentication.NewJwtAuthenticationService(
-				config.ApplicationConfig.Authentication.Issuer,
-				[]byte(config.ApplicationConfig.Authentication.JwtSigningKey),
+				applicationConfig.Authentication.Issuer,
+				[]byte(applicationConfig.Authentication.JwtSigningKey),
 			),
 		)},
 	))
 
-	if reflect.ValueOf(config.ApplicationConfig.Profile).IsZero() || !config.ApplicationConfig.Profile.Production {
+	if reflect.ValueOf(applicationConfig.Profile).IsZero() || !applicationConfig.Profile.Production {
 		router.Handle("/playground", playground.Handler("GraphQL playground", "/query"))
 		log.Printf("Serving GraphQL playground on http://%s:%s/playground", hostname, portNumber)
 	}

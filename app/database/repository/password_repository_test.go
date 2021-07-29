@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"github.com/KristijanFaust/gokeeper/app/config"
 	"github.com/KristijanFaust/gokeeper/app/database"
 	"github.com/KristijanFaust/gokeeper/app/database/model"
 	"github.com/KristijanFaust/gokeeper/app/utility/test/databaseutil"
@@ -27,9 +26,9 @@ func TestPasswordSuite(t *testing.T) {
 
 func (suite *PasswordTestSuite) SetupSuite() {
 	suite.isDatabaseUp = testcontainersutil.DockerComposeUp()
-	databaseutil.GenerateTestDatasourceConfiguration()
-	suite.session = database.InitializeDatabaseConnection()
-	suite.isDatabaseMigrated = databaseutil.RunDatabaseMigrations()
+	databaseConfiguration := databaseutil.GenerateTestDatasourceConfiguration()
+	suite.session = database.InitializeDatabaseConnection(databaseConfiguration)
+	suite.isDatabaseMigrated = databaseutil.RunDatabaseMigrations(databaseConfiguration)
 	suite.userRepository = NewUserRepositoryService(suite.session)
 	suite.passwordRepository = NewPasswordRepositoryService(suite.session)
 }
@@ -37,7 +36,6 @@ func (suite *PasswordTestSuite) SetupSuite() {
 func (suite *PasswordTestSuite) TearDownSuite() {
 	testcontainersutil.DockerComposeDown()
 	database.CloseDatabaseConnection(suite.session)
-	config.ApplicationConfig = nil
 }
 
 // InsertNewPassword should successfully insert a new user password in the database

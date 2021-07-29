@@ -12,31 +12,33 @@ import (
 	"runtime"
 )
 
-func GenerateTestDatasourceConfiguration() {
-	config.ApplicationConfig = new(config.Config)
-	config.ApplicationConfig.Datasource.Host = "localhost:50000"
-	config.ApplicationConfig.Datasource.User = "gokeeperapp-test"
-	config.ApplicationConfig.Datasource.Password = "password-test"
-	config.ApplicationConfig.Datasource.Database = "gokeeper-test"
-	config.ApplicationConfig.Datasource.MaxOpenConnections = 1
-	config.ApplicationConfig.Datasource.MaxConnectionLifetime = 1
+func GenerateTestDatasourceConfiguration() *config.Datasource {
+	datasourceConfig := new(config.Datasource)
+	datasourceConfig.Host = "localhost:50000"
+	datasourceConfig.User = "gokeeperapp-test"
+	datasourceConfig.Password = "password-test"
+	datasourceConfig.Database = "gokeeper-test"
+	datasourceConfig.MaxOpenConnections = 1
+	datasourceConfig.MaxConnectionLifetime = 1
+
+	return datasourceConfig
 }
 
-func RunDatabaseMigrations() bool {
-	if config.ApplicationConfig == nil || reflect.ValueOf(config.ApplicationConfig.Datasource).IsZero() {
+func RunDatabaseMigrations(datasourceConfig *config.Datasource) bool {
+	if reflect.ValueOf(datasourceConfig).IsZero() {
 		log.Panic("Datasource configuration not loaded, cannot run test database migrations")
 	}
 
 	migrationFilesPath := "file://" + getRelativePathToDatabaseMigrationFiles()
 	databaseUri := fmt.Sprintf(
 		"postgres://%s:%s@%s/%s?sslmode=disable",
-		config.ApplicationConfig.Datasource.User,
-		config.ApplicationConfig.Datasource.Password,
-		config.ApplicationConfig.Datasource.Host,
-		config.ApplicationConfig.Datasource.Database,
+		datasourceConfig.User,
+		datasourceConfig.Password,
+		datasourceConfig.Host,
+		datasourceConfig.Database,
 	)
 
-	migrate, err := migrate.New(migrationFilesPath, databaseUri)
+	migration, err := migrate.New(migrationFilesPath, databaseUri)
 	if err != nil {
 		log.Printf(
 			"An error occured while trying to setup test migrations from: %s, with database uri: %s\nError: %s",
@@ -45,7 +47,7 @@ func RunDatabaseMigrations() bool {
 		return false
 	}
 
-	err = migrate.Steps(1)
+	err = migration.Steps(1)
 	if err != nil {
 		log.Printf("An error occured during test migration execution: %s", err)
 		return false
