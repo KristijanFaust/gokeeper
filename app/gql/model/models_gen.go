@@ -9,11 +9,6 @@ type Password struct {
 	Password string `json:"password"`
 }
 
-type Token struct {
-	Token    string `json:"token"`
-	ExpireAt int    `json:"expireAt"`
-}
-
 type User struct {
 	ID       string `json:"id"`
 	Email    string `json:"email"`
@@ -27,5 +22,5 @@ type UserSignIn struct {
 
 type UserWithToken struct {
 	User  *User  `json:"user"`
-	Token *Token `json:"token"`
+	Token string `json:"token"`
 }

@@ -38,10 +38,7 @@ func Run(applicationConfig *config.Config, serverDoneWaitGroup *sync.WaitGroup, 
 				Argon2PasswordHasher: &security.PasswordHashService{},
 				AesPasswordCryptor:   &security.PasswordCryptoService{},
 			},
-			authentication.NewJwtAuthenticationService(
-				applicationConfig.Authentication.Issuer,
-				[]byte(applicationConfig.Authentication.JwtSigningKey),
-			),
+			authentication.NewJwtAuthenticationService(applicationConfig.Authentication),
 		)},
 	))
 

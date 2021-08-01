@@ -11,14 +11,9 @@ type Password {
   password: String!
 }
 
-type Token {
-  token: String!
-  expireAt: Int!
-}
-
 type UserWithToken {
   user: User!
-  token: Token!
+  token: String!
 }
 
 input NewUser {

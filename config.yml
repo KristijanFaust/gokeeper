@@ -16,3 +16,4 @@ datasource:
 authentication:
   issuer: gokeeper
   jwtSigningKey: ENwJsa2nm674seV6
+  jwtDurationInMinutes: 10

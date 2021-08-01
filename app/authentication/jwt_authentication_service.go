@@ -1,30 +1,37 @@
 package authentication
 
 import (
+	"github.com/KristijanFaust/gokeeper/app/config"
 	"github.com/dgrijalva/jwt-go"
 	"log"
+	"time"
 )
 
 // Variable meant for mocking
 var signingCall = func(token *jwt.Token, signingKey []byte) (string, error) { return token.SignedString(signingKey) }
 
 type JwtAuthenticator interface {
-	GenerateJwt(userID uint64, expiredAt int64) (string, error)
+	GenerateJwt(userID uint64) (string, error)
 }
 
 type jwtAuthenticationService struct {
 	issuer        string
 	jwtSigningKey []byte
+	expiresAt     int64
 }
 
-func NewJwtAuthenticationService(issuer string, jwtSigningKey []byte) *jwtAuthenticationService {
-	return &jwtAuthenticationService{issuer: issuer, jwtSigningKey: jwtSigningKey}
+func NewJwtAuthenticationService(authenticationConfig *config.Authentication) *jwtAuthenticationService {
+	return &jwtAuthenticationService{
+		issuer:        authenticationConfig.Issuer,
+		jwtSigningKey: []byte(authenticationConfig.JwtSigningKey),
+		expiresAt:     time.Now().Add(time.Minute * time.Duration(authenticationConfig.JwtDurationInMinutes)).Unix(),
+	}
 }
 
-func (service *jwtAuthenticationService) GenerateJwt(userID uint64, expiredAt int64) (string, error) {
+func (service *jwtAuthenticationService) GenerateJwt(userID uint64) (string, error) {
 	userClaims := UserClaims{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expiredAt,
+			ExpiresAt: service.expiresAt,
 			Issuer:    service.issuer,
 		},
 		UserID: userID,

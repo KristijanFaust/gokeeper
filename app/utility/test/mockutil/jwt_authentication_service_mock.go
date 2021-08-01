@@ -8,8 +8,8 @@ type JwtAuthenticationServiceMock struct {
 	mock.Mock
 }
 
-func (service *JwtAuthenticationServiceMock) GenerateJwt(userID uint64, expiredAt int64) (string, error) {
-	arguments := service.Called(userID, expiredAt)
+func (service *JwtAuthenticationServiceMock) GenerateJwt(userID uint64) (string, error) {
+	arguments := service.Called(userID)
 	return arguments.String(0), arguments.Error(1)
 }
 

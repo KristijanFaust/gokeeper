@@ -9,7 +9,6 @@ import (
 	"log"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	databaseModel "github.com/KristijanFaust/gokeeper/app/database/model"
@@ -103,16 +102,14 @@ func (r *mutationResolver) SignIn(ctx context.Context, input model.UserSignIn) (
 		return nil, gqlerror.Errorf(wrongPasswordErrorMessage)
 	}
 
-	expireAt := int(time.Now().Add(time.Minute * 15).Unix())
-	jwt, err := r.authenticationService.GenerateJwt(fetchedUser.Id, int64(expireAt))
+	jwt, err := r.authenticationService.GenerateJwt(fetchedUser.Id)
 	if err != nil {
 		return nil, gqlerror.Errorf(signInErrorMessage)
 	}
 
 	user := &model.User{ID: strconv.FormatUint(fetchedUser.Id, 10), Email: fetchedUser.Email, Username: fetchedUser.Username}
-	token := &model.Token{Token: jwt, ExpireAt: expireAt}
 
-	return &model.UserWithToken{User: user, Token: token}, nil
+	return &model.UserWithToken{User: user, Token: jwt}, nil
 }
 
 func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) ([]*model.Password, error) {

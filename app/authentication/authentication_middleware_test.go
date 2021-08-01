@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"github.com/KristijanFaust/gokeeper/app/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -9,7 +10,6 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
-	"time"
 )
 
 type AuthenticationMiddlewareTestSuite struct {
@@ -88,9 +88,14 @@ func setUpTestServerWithAuthenticationMiddleware(jwtSigningKey string) *httptest
 }
 
 func generateTestJwt(signingKey string, minutesToExpire int) string {
-	authenticationService := NewJwtAuthenticationService("issuer", []byte(signingKey))
-	expireAt := time.Now().Add(time.Minute * time.Duration(minutesToExpire)).Unix()
-	token, _ := authenticationService.GenerateJwt(uint64(1), expireAt)
+	authenticationService := NewJwtAuthenticationService(
+		&config.Authentication{
+			Issuer:               "issuer",
+			JwtSigningKey:        signingKey,
+			JwtDurationInMinutes: minutesToExpire,
+		},
+	)
+	token, _ := authenticationService.GenerateJwt(uint64(1))
 
 	return token
 }

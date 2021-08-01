@@ -192,8 +192,7 @@ func (suite *schemaResolverTestSuite) TestSignIn() {
 	userWithToken, err := suite.mutationResolver.SignIn(context.Background(), input)
 	assert.Nil(suite.T(), err, "User should sign in without any errors")
 
-	assert.Equal(suite.T(), userWithToken.Token.Token, mockutil.MockedJwtToken)
-	assert.NotNil(suite.T(), userWithToken.Token.ExpireAt)
+	assert.Equal(suite.T(), userWithToken.Token, mockutil.MockedJwtToken)
 
 	assert.Equal(suite.T(), userWithToken.User.ID, mockutil.DefaultIdAsString)
 	assert.Equal(suite.T(), userWithToken.User.Email, mockutil.DefaultEmail)
