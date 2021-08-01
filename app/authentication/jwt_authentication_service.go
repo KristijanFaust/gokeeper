@@ -8,11 +8,6 @@ import (
 // Variable meant for mocking
 var signingCall = func(token *jwt.Token, signingKey []byte) (string, error) { return token.SignedString(signingKey) }
 
-type UserClaims struct {
-	UserID uint64 `json:"user_id"`
-	jwt.StandardClaims
-}
-
 type JwtAuthenticator interface {
 	GenerateJwt(userID uint64, expiredAt int64) (string, error)
 }

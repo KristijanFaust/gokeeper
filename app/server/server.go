@@ -28,6 +28,8 @@ func Run(applicationConfig *config.Config, serverDoneWaitGroup *sync.WaitGroup, 
 	log.Printf("Starting GoKeeper server on http://%s:%s", hostname, portNumber)
 
 	router := chi.NewRouter()
+	router.Use(authentication.AuthenticationMiddleware(applicationConfig.Authentication.JwtSigningKey))
+
 	graphqlHandler := handler.NewDefaultServer(generated.NewExecutableSchema(
 		generated.Config{Resolvers: gql.NewResolver(
 			repository.NewUserRepositoryService(session),
