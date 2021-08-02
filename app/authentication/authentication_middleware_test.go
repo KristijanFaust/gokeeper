@@ -77,7 +77,7 @@ func setUpTestServerWithAuthenticationMiddleware(jwtSigningKey string) *httptest
 	router.Use(AuthenticationMiddleware(jwtSigningKey))
 
 	router.Get("/", func(writer http.ResponseWriter, request *http.Request) {
-		if userAuthenticationData, ok := request.Context().Value(userContextKey).(userAuthentication); ok {
+		if userAuthenticationData, ok := request.Context().Value(userContextKey).(UserAuthentication); ok {
 			writer.Write([]byte("UserId: " + strconv.FormatUint(userAuthenticationData.UserId, 10)))
 		} else {
 			writer.Write([]byte("No authentication header in client request"))

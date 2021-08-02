@@ -59,6 +59,11 @@ func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPa
 		return nil, gqlerror.Errorf(passwordCreationErrorMessage)
 	}
 
+	userAuthentication := r.authenticationService.GetAuthenticatedUserDataFromContext(ctx)
+	if userAuthentication == nil || userAuthentication.UserId != userId {
+		return nil, gqlerror.Errorf(passwordCreationAuthenticationErrorMessage)
+	}
+
 	user := databaseModel.User{}
 	err = r.userRepository.FetchMasterPasswordByUserId(&user, userId)
 	if err != nil {
@@ -117,6 +122,11 @@ func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) (
 	if err != nil {
 		log.Printf("Error occurred while converting user id to uint64: %s", err)
 		return nil, gqlerror.Errorf(userPasswordsFetchErrorMessage)
+	}
+
+	userAuthentication := r.authenticationService.GetAuthenticatedUserDataFromContext(ctx)
+	if userAuthentication == nil || userAuthentication.UserId != userId {
+		return nil, gqlerror.Errorf(userPasswordsAuthenticationErrorMessage)
 	}
 
 	var passwords []*model.Password

@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"context"
 	"errors"
 	"github.com/KristijanFaust/gokeeper/app/config"
 	"github.com/dgrijalva/jwt-go"
@@ -23,6 +24,14 @@ func TestGenerateJwtWithSigningError(t *testing.T) {
 	token, err := authenticationService.GenerateJwt(uint64(1))
 	assert.Equal(t, err, errors.New("mocked error"), "Should return signing error when signing fails")
 	assert.Equal(t, token, "", "Jwt token should not be generated")
+}
+
+// GetAuthenticatedUserDataFromContext should successfully get user authentication details from context
+func TestGetAuthenticatedUserDataFromContext(t *testing.T) {
+	authenticationService := setupAuthenticationService()
+	ctx := context.WithValue(context.Background(), userContextKey, &UserAuthentication{UserId: uint64(1)})
+	userAuthentication := authenticationService.GetAuthenticatedUserDataFromContext(ctx)
+	assert.Equal(t, userAuthentication, &UserAuthentication{UserId: uint64(1)}, "Should return signing error when signing fails")
 }
 
 func setupAuthenticationService() *jwtAuthenticationService {

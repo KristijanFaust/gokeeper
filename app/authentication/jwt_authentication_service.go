@@ -1,6 +1,7 @@
 package authentication
 
 import (
+	"context"
 	"github.com/KristijanFaust/gokeeper/app/config"
 	"github.com/dgrijalva/jwt-go"
 	"log"
@@ -12,6 +13,7 @@ var signingCall = func(token *jwt.Token, signingKey []byte) (string, error) { re
 
 type JwtAuthenticator interface {
 	GenerateJwt(userID uint64) (string, error)
+	GetAuthenticatedUserDataFromContext(context context.Context) *UserAuthentication
 }
 
 type jwtAuthenticationService struct {
@@ -45,4 +47,8 @@ func (service *jwtAuthenticationService) GenerateJwt(userID uint64) (string, err
 	}
 
 	return signedToken, nil
+}
+
+func (service *jwtAuthenticationService) GetAuthenticatedUserDataFromContext(context context.Context) *UserAuthentication {
+	return context.Value(userContextKey).(*UserAuthentication)
 }

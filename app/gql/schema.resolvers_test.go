@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/KristijanFaust/gokeeper/app/authentication"
 	"github.com/KristijanFaust/gokeeper/app/gql/generated"
 	"github.com/KristijanFaust/gokeeper/app/gql/model"
 	"github.com/KristijanFaust/gokeeper/app/utility/test/mockutil"
@@ -130,6 +131,38 @@ func (suite *schemaResolverTestSuite) TestCreatePasswordWithUnexpectedUserIdValu
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not create a new password"),
 		"Should return expected error when user id is of an unexpected value",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// CreatePassword should return expected error when request is not authenticated
+func (suite *schemaResolverTestSuite) TestCreatePasswordUnauthenticated() {
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(nil).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("unauthorized password creation"),
+		"Should return expected error when request is not authorized",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// CreatePassword should return expected error when request authentication is invalid
+func (suite *schemaResolverTestSuite) TestCreatePasswordWithInvalidAuthentication() {
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(
+		&authentication.UserAuthentication{UserId: uint64(2)},
+	).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("unauthorized password creation"),
+		"Should return expected error when request is not authorized",
 	)
 	assert.Nil(suite.T(), password, "Should not return any password data")
 }
@@ -287,6 +320,12 @@ func (suite *schemaResolverTestSuite) TestQueryUserPasswords() {
 
 // QueryUserPasswords should should return empty slice when user has got no passwords
 func (suite *schemaResolverTestSuite) TestQueryUserPasswordsWithoutUserPasswords() {
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(
+		&authentication.UserAuthentication{UserId: uint64(2)},
+	).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+
 	passwords, err := suite.queryResolver.QueryUserPasswords(suite.graphqlRequestContext, "2")
 	assert.Nil(suite.T(), err, "Should fetch passwords without errors")
 	assert.Nil(suite.T(), passwords, "Should return nil passwords slice")
@@ -298,6 +337,36 @@ func (suite *schemaResolverTestSuite) TestQueryUserPasswordsWithUnexpectedUserId
 	assert.Equal(
 		suite.T(), err, gqlerror.Errorf("could not fetch user's passwords"),
 		"Should return expected error when user id is of an unexpected value",
+	)
+	assert.Nil(suite.T(), passwords, "Should not return any passwords data")
+}
+
+// QueryUserPasswords should return expected error when request is not authenticated
+func (suite *schemaResolverTestSuite) TestQueryUserPasswordsUnauthenticated() {
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(nil).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+
+	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), mockutil.DefaultIdAsString)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("unauthorized passwords fetch"),
+		"Should return expected error when request is not authorized",
+	)
+	assert.Nil(suite.T(), passwords, "Should not return any passwords data")
+}
+
+// CreatePassword should return expected error when request authentication is invalid
+func (suite *schemaResolverTestSuite) TestQueryUserPasswordsWithInvalidAuthentication() {
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(
+		&authentication.UserAuthentication{UserId: uint64(2)},
+	).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+
+	passwords, err := suite.queryResolver.QueryUserPasswords(context.Background(), mockutil.DefaultIdAsString)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("unauthorized passwords fetch"),
+		"Should return expected error when request is not authorized",
 	)
 	assert.Nil(suite.T(), passwords, "Should not return any passwords data")
 }

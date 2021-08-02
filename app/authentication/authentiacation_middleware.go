@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-type userAuthentication struct {
+type UserAuthentication struct {
 	UserId uint64
 }
 
@@ -27,7 +27,7 @@ func AuthenticationMiddleware(jwtSigningKey string) func(http.Handler) http.Hand
 			}
 
 			userClaims := &UserClaims{}
-			decodedToken, err := DecodeJwt(token, userClaims, jwtSigningKey)
+			decodedToken, err := decodeJwt(token, userClaims, jwtSigningKey)
 			if err != nil || !decodedToken.Valid {
 				if err != nil {
 					log.Printf("Error occurred while decoding JWT: %s", err)
@@ -38,7 +38,7 @@ func AuthenticationMiddleware(jwtSigningKey string) func(http.Handler) http.Hand
 				return
 			}
 
-			ctx := context.WithValue(request.Context(), userContextKey, userAuthentication{UserId: userClaims.UserID})
+			ctx := context.WithValue(request.Context(), userContextKey, UserAuthentication{UserId: userClaims.UserID})
 			request = request.WithContext(ctx)
 
 			nextHandler.ServeHTTP(writer, request)
@@ -46,7 +46,7 @@ func AuthenticationMiddleware(jwtSigningKey string) func(http.Handler) http.Hand
 	}
 }
 
-func DecodeJwt(token string, userClaims *UserClaims, jwtSigningKey string) (*jwt.Token, error) {
+func decodeJwt(token string, userClaims *UserClaims, jwtSigningKey string) (*jwt.Token, error) {
 	return jwt.ParseWithClaims(token, userClaims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(jwtSigningKey), nil
 	})
