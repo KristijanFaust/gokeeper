@@ -1,11 +1,11 @@
-import './App.css';
+import Header from './components/header/header.component'
+
+import './App.scss';
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>GoKeeper</h1>
-      </header>
+      <Header />
     </div>
   );
 }
