@@ -1,5 +1,7 @@
+@import "../../utility/sass/color-scheme";
+
 .header {
-  background-color: #282c34;
+  background-color: $goKeeperDark;
   height: 70px;
   width: 100%;
   display: flex;

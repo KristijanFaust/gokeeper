@@ -1,10 +1,12 @@
+@import "../../utility/sass/color-scheme";
+
 .logo {
   padding: 15px;
   display: inline-flex;
   text-decoration: none;
 
   h1 {
-    margin: 0pt 5pt 0pt 5pt;
-    color: white;
+    margin: 0px 5px 0px 5px;
+    color: $goKeeperLight;
   }
 }

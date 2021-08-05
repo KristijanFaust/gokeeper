@@ -1,0 +1,39 @@
+@import "../../utility/sass/color-scheme";
+
+.group {
+  position: relative;
+  margin: 60px 0;
+
+  .input {
+    background: none;
+    color: $goKeeperDark;
+    font-size: 18px;
+    padding: 10px 10px 10px 5px;
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    border-bottom: 2px solid $goKeeperDark;
+    margin: 25px 0;
+
+    &:focus {
+      outline: none;
+    }
+
+    &:focus ~ .input-label {
+      color: $goKeeperSecondaryAccent;
+    }
+  }
+
+  input[type='password'] {
+    letter-spacing: 0.3em;
+  }
+
+  .input-label {
+    color: $goKeeperDark;
+    font-size: 12px;
+    position: absolute;
+    left: 5px;
+    top: -15px;
+  }
+}
