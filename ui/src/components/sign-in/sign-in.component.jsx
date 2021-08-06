@@ -7,8 +7,6 @@ import './sign-in.styles.scss';
 
 const SignIn = () => (
   <div className='sign-in'>
-    <h2>Sign in</h2>
-
     <form>
       <Input name='email' type='email' label='email' required/>
       <Input name='password' type='password' label='password' required/>

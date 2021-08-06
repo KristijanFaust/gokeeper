@@ -21,7 +21,8 @@
     }
 
     &:focus ~ .input-label {
-      color: $goKeeperSecondaryAccent;
+      color: $goKeeperMainAccent;
+      font-weight: bolder;
     }
   }
 
