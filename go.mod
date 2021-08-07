@@ -16,6 +16,7 @@ require (
 	github.com/iancoleman/strcase v0.2.0
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lib/pq v1.10.2
+	github.com/rs/cors v1.8.0
 	github.com/stretchr/testify v1.7.0
 	github.com/testcontainers/testcontainers-go v0.11.1
 	github.com/upper/db/v4 v4.1.0
