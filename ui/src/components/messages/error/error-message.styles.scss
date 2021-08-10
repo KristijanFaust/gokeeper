@@ -1,0 +1,13 @@
+@import "../../../utility/sass/color-scheme";
+
+.error-message {
+  padding: 10px;
+  margin-left: 20px;
+  color: $goKeeperLight;
+  background: $goKeeperErrorAccent;
+  border: 1px solid $goKeeperDark;
+
+  .error-icon {
+    margin-right: 5px;
+  }
+}

@@ -1,18 +1,25 @@
 import {Link} from "react-router-dom";
-import React from "react";
+import React, {useEffect, useState} from "react";
 
 import './header-links.styles.scss'
 
-const HeaderLinks = () => (
-  <div className='header-link-group'>
-    <Link className='header-link' to='/'>
-      <span>Sign In</span>
-    </Link>
-    <div className='header-link-separator'>|</div>
-    <Link className='header-link' to='/sign-up'>
-      <span>Sign Up</span>
-    </Link>
-  </div>
-);
+const HeaderLinks = ({navigationLinks}) => {
+  const [authenticationToken, setAuthenticationToken] = useState(localStorage.getItem('authenticationToken'))
+
+  useEffect(() => {
+    setAuthenticationToken(localStorage.getItem('authenticationToken'));
+  }, [authenticationToken]);
+
+  return (
+    <div className='header-link-group'>
+      {Object.keys(navigationLinks).map((link, index) => (
+        <Link key={index} className='header-link' to={'/' + navigationLinks[link]}>
+          <span>{link}</span>
+        </Link>
+        )
+      )}
+    </div>
+  );
+};
 
 export default HeaderLinks;

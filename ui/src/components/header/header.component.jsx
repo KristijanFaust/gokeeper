@@ -6,10 +6,10 @@ import UserPanel from "./user-panel/user-panel.component";
 
 import './header.styles.scss';
 
-const Header = () => (
+const Header = ({navigationLinks}) => (
     <div className='header'>
       <Logo />
-      <HeaderLinks />
+      <HeaderLinks navigationLinks={navigationLinks} />
       <UserPanel />
     </div>
 );

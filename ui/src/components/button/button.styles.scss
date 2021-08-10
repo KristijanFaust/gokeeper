@@ -14,7 +14,13 @@
   font-weight: bolder;
   border: none;
 
-  &:hover {
+  &.disabled {
+    background-color: $goKeeperLight;
+    color: $goKeeperDark;
+    border: 1px solid $goKeeperDark;
+  }
+
+  &:hover:not(.disabled) {
     background-color: $goKeeperMainAccent;
   }
 }
