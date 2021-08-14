@@ -1,0 +1,13 @@
+@import "../../../utility/sass/color-scheme";
+
+.notification-message {
+  padding: 10px;
+  margin-left: 20px;
+  color: $goKeeperLight;
+  background: $goKeeperMainAccent;
+  border: 1px solid $goKeeperDark;
+
+  .notification-icon {
+    margin-right: 5px;
+  }
+}
