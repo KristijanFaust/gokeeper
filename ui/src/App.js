@@ -21,7 +21,7 @@ function App() {
 
   return (
     <div className="App">
-      <Header navigationLinks={navigationLinks} />
+      <Header navigationLinks={navigationLinks} signOutCallback={setAuthenticationToken} />
       <Switch>
         <Route exact path='/' render={() => authenticationToken ? (<DashboardPage />) : (<Redirect to='/sign-in' />)} />
         <Route exact path='/sign-in' render={() => authenticationToken ?

@@ -6,11 +6,11 @@ import UserPanel from "./user-panel/user-panel.component";
 
 import './header.styles.scss';
 
-const Header = ({navigationLinks}) => (
+const Header = ({navigationLinks, signOutCallback}) => (
     <div className='header'>
       <Logo />
       <HeaderLinks navigationLinks={navigationLinks} />
-      <UserPanel />
+      <UserPanel signOutCallback={signOutCallback} />
     </div>
 );
 

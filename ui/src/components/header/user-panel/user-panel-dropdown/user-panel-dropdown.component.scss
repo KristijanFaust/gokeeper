@@ -1,0 +1,36 @@
+@import "../../../../utility/sass/color-scheme";
+
+.user-panel-dropdown {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  padding: 0px;
+  border: 3px solid $goKeeperDark;
+  background-color: white;
+  top: 80px;
+  right: 20px;
+  color: $goKeeperDark;
+
+  .title {
+    width: 200px;
+    font-size: 12px;
+    margin: auto;
+    padding: 5px 0px 5px 0px;
+    background-color: $goKeeperDark;
+    color: $goKeeperLight;
+    border-bottom: 1px solid $goKeeperDark;
+  }
+
+  .action {
+    width: 200px;
+    padding: 5px 0px 5px 0px;
+    font-size: 14px;
+
+    &:hover {
+      background-color: $goKeeperMainAccent;
+      color: $goKeeperLight;
+    }
+  }
+
+}

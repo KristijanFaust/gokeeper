@@ -8,7 +8,12 @@
   font-weight: bold;
   cursor: pointer;
 
-  &:hover {
+  .user-panel-icon:hover {
     color: $goKeeperSecondaryAccent;
+  }
+
+  .username {
+    margin: 5px 10px 0px 0px;
+    font-size: 18px;
   }
 }
