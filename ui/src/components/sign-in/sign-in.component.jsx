@@ -1,12 +1,12 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useMutation} from '@apollo/react-hooks';
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 
 import Input from '../input/input.component';
 import Button from '../button/button.component';
 import ErrorMessage from '../messages/error/error-message.component';
-import NotificationMessage from "../messages/notification/notification-message.component";
+import NotificationMessage from '../messages/notification/notification-message.component';
 import signInMutation from '../../graphql/mutations/sign-in-mutation';
 
 import './sign-in.styles.scss';
@@ -41,19 +41,15 @@ const SignIn = ({signInCallback}) => {
     signIn({variables: {email: email, password: password}});
   }
 
-  let submitButton;
-  loading ? submitButton = <Button disabled={true}> Sign in </Button> :
-    submitButton = <Button type='submit'> Sign in </Button>;
+  const submitButton = loading ? <Button disabled={true}> Sign in </Button> : <Button type='submit'> Sign in </Button>;
 
-  let errorMessage;
-  errors ? errorMessage = errors.map((error, index) => {
-    return <ErrorMessage key={index}>{error}</ErrorMessage>;
-  }) : errorMessage = '';
+  const errorMessage = errors ? errors.map((error, index) => {
+    return <ErrorMessage key={index}>{error}</ErrorMessage>
+  }) : null;
 
-  let notificationMessage;
-  notifications ? notificationMessage = notifications.map((notification, index) => {
-    return <NotificationMessage key={index}>{notification}</NotificationMessage>;
-  }) : notificationMessage = '';
+  const notificationMessage = notifications ? notifications.map((notification, index) => {
+    return <NotificationMessage key={index}>{notification}</NotificationMessage>
+  }) : null;
 
   return (
     <div className='sign-in'>

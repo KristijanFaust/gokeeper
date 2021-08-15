@@ -1,13 +1,13 @@
-import {faExclamationCircle} from "@fortawesome/free-solid-svg-icons";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {useState} from "react";
+import {faExclamationCircle} from '@fortawesome/free-solid-svg-icons';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {useState} from 'react';
 
-import './error-message.styles.scss'
+import './error-message.styles.scss';
 
 const ErrorMessage = ({children}) => {
   const [clicked, setClicked] = useState(false);
 
-  if (clicked) return ''
+  if (clicked) return null
 
   return (
     <div className='error-message' onClick={() => setClicked(true)}>

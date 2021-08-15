@@ -1,10 +1,10 @@
-import {Link} from "react-router-dom";
-import React, {useEffect, useState} from "react";
+import {Link} from 'react-router-dom';
+import {useEffect, useState} from 'react';
 
-import './header-links.styles.scss'
+import './header-links.styles.scss';
 
 const HeaderLinks = ({navigationLinks}) => {
-  const [authenticationToken, setAuthenticationToken] = useState(localStorage.getItem('authenticationToken'))
+  const [authenticationToken, setAuthenticationToken] = useState(localStorage.getItem('authenticationToken'));
 
   useEffect(() => {
     setAuthenticationToken(localStorage.getItem('authenticationToken'));

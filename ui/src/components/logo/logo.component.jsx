@@ -1,8 +1,8 @@
-import {Link} from "react-router-dom";
+import {Link} from 'react-router-dom';
 
-import {ReactComponent as Emblem} from "../../assets/logo.svg";
+import {ReactComponent as Emblem} from '../../assets/logo.svg';
 
-import './logo.styles.scss'
+import './logo.styles.scss';
 
 const Logo = () => (
   <Link className='logo' to='/'>

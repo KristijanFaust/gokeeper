@@ -1,13 +1,13 @@
-import {faCheckCircle} from "@fortawesome/free-solid-svg-icons";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import {useState} from "react";
+import {faCheckCircle} from '@fortawesome/free-solid-svg-icons';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {useState} from 'react';
 
-import './notification-message.styles.scss'
+import './notification-message.styles.scss';
 
 const NotificationMessage = ({children}) => {
   const [clicked, setClicked] = useState(false);
 
-  if (clicked) return ''
+  if (clicked) return null;
 
   return (
     <div className='notification-message' onClick={() => setClicked(true)}>

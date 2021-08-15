@@ -1,6 +1,6 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useMutation} from '@apollo/react-hooks';
-import { useHistory } from "react-router-dom";
+import { useHistory } from 'react-router-dom';
 
 import Input from '../input/input.component';
 import Button from '../button/button.component';
@@ -17,7 +17,7 @@ const SignUp = () => {
   const [errors, setErrors] = useState(null);
   const [signUp, {loading}] = useMutation(signUpMutation, {
     onCompleted: (data) => {
-      history.push("/sign-in", {email: data.signUp.email});
+      history.push('/sign-in', {email: data.signUp.email});
     },
     onError: (response) => {
       setErrors(response.graphQLErrors.map(error => error.message));
@@ -29,14 +29,11 @@ const SignUp = () => {
     signUp({variables: {email: email, username: username, password: password}});
   }
 
-  let submitButton;
-  loading ? submitButton = <Button disabled={true}> Sign up </Button> :
-    submitButton = <Button type='submit'> Sign up </Button>;
+  const submitButton = loading ? <Button disabled={true}> Sign up </Button> : <Button type='submit'> Sign up </Button>;
 
-  let errorMessage;
-  errors ? errorMessage = errors.map((error, index) => {
-    return <ErrorMessage key={index}>{error}</ErrorMessage>;
-  }) : errorMessage = '';
+  const errorMessage = errors ? errors.map((error, index) => {
+    return <ErrorMessage key={index}>{error}</ErrorMessage>
+  }) : null;
 
   return (
     <div className='sign-up'>
