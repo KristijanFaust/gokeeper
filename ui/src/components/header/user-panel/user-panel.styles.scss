@@ -1,19 +1,21 @@
 @import '../../../utility/sass/color-scheme';
 
 .user-panel {
-  margin: 20px 25px 25px 170px;
+  margin: 25px 25px 20px 25px;
   display: inline-flex;
   color: $goKeeperLight;
   font-size: 32px;
   font-weight: bold;
   cursor: pointer;
+  position: absolute;
+  right: 0;
 
   .user-panel-icon:hover {
     color: $goKeeperSecondaryAccent;
   }
 
   .username {
-    margin: 5px 10px 0px 0px;
+    margin: auto 5px;
     font-size: 18px;
   }
 }

@@ -2,14 +2,14 @@
 
 .user-panel-dropdown {
   position: absolute;
+  top: 50px;
+  right: 0px;
   display: flex;
   flex-direction: column;
   text-align: center;
   padding: 0px;
   border: 3px solid $goKeeperDark;
   background-color: white;
-  top: 80px;
-  right: 20px;
   color: $goKeeperDark;
 
   .title {

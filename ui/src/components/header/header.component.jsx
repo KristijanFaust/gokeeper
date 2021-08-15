@@ -1,4 +1,4 @@
-import Logo from '../logo/logo.component';
+import Logo from './logo/logo.component';
 import HeaderLinks from './header-links/header-links.component';
 import UserPanel from './user-panel/user-panel.component';
 

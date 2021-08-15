@@ -6,6 +6,9 @@
   color: $goKeeperLight;
   font-size: 18px;
   font-weight: bold;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 
   .header-link {
     text-transform: uppercase;
