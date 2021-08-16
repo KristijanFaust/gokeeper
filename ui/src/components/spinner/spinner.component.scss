@@ -1,0 +1,16 @@
+@import '../../utility/sass/color-scheme';
+
+.spinner {
+  font-size: 150px;
+  color: $goKeeperMainAccent;
+  animation: spin 4s linear infinite;
+
+  @keyframes spin {
+    0% {
+      transform: rotateZ(0);
+    }
+    100% {
+      transform: rotateZ(360deg);
+    }
+  }
+}
