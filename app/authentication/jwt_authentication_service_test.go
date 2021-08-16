@@ -34,6 +34,13 @@ func TestGetAuthenticatedUserDataFromContext(t *testing.T) {
 	assert.Equal(t, userAuthentication, &UserAuthentication{UserId: uint64(1)}, "Should return signing error when signing fails")
 }
 
+// GetAuthenticatedUserDataFromContext should return nil when user authentication data is not provided
+func TestGetAuthenticatedUserDataFromContextWithoutAuthenticationData(t *testing.T) {
+	authenticationService := setupAuthenticationService()
+	userAuthentication := authenticationService.GetAuthenticatedUserDataFromContext(context.Background())
+	assert.Nil(t, userAuthentication)
+}
+
 func setupAuthenticationService() *jwtAuthenticationService {
 	return NewJwtAuthenticationService(
 		&config.Authentication{

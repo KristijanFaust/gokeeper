@@ -33,8 +33,8 @@ type Datasource struct {
 
 type Authentication struct {
 	Issuer               string `yaml:"issuer"`
-	JwtSigningKey        string `yaml:"jwtSigningKey"`
-	JwtDurationInMinutes int    `yaml:"jwt_duration_in_minutes"`
+	JwtSigningKey        string `yaml:"jwt-signing-key"`
+	JwtDurationInMinutes int    `yaml:"jwt-duration-in-minutes"`
 }
 
 func LoadConfiguration(configPath string) *Config {

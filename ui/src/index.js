@@ -10,7 +10,7 @@ import './index.scss';
 const gqlClient = new ApolloClient({
   uri: 'http://localhost:8080/query',
   cache: new InMemoryCache(),
-  headers: { authorization: localStorage.getItem('authenticationToken') || '' }
+  headers: { Authentication: localStorage.getItem('authenticationToken') || '' }
 });
 
 ReactDOM.render(

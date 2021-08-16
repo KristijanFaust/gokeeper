@@ -46,7 +46,7 @@ func Run(applicationConfig *config.Config, serverDoneWaitGroup *sync.WaitGroup, 
 	if reflect.ValueOf(applicationConfig.Profile).IsZero() || !applicationConfig.Profile.Production {
 		router.Use(cors.New(cors.Options{
 			AllowedOrigins: []string{"http://localhost:3000"},
-			AllowedHeaders: []string{"Authorization", "Content-Type"},
+			AllowedHeaders: []string{"Authentication", "Content-Type"},
 		}).Handler)
 
 		router.Handle("/playground", playground.Handler("GraphQL playground", "/query"))

@@ -17,23 +17,23 @@ type JwtAuthenticator interface {
 }
 
 type jwtAuthenticationService struct {
-	issuer        string
-	jwtSigningKey []byte
-	expiresAt     int64
+	issuer               string
+	jwtSigningKey        []byte
+	jwtDurationInMinutes int
 }
 
 func NewJwtAuthenticationService(authenticationConfig *config.Authentication) *jwtAuthenticationService {
 	return &jwtAuthenticationService{
-		issuer:        authenticationConfig.Issuer,
-		jwtSigningKey: []byte(authenticationConfig.JwtSigningKey),
-		expiresAt:     time.Now().Add(time.Minute * time.Duration(authenticationConfig.JwtDurationInMinutes)).Unix(),
+		issuer:               authenticationConfig.Issuer,
+		jwtSigningKey:        []byte(authenticationConfig.JwtSigningKey),
+		jwtDurationInMinutes: authenticationConfig.JwtDurationInMinutes,
 	}
 }
 
 func (service *jwtAuthenticationService) GenerateJwt(userID uint64) (string, error) {
 	userClaims := UserClaims{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: service.expiresAt,
+			ExpiresAt: time.Now().Add(time.Minute * time.Duration(service.jwtDurationInMinutes)).Unix(),
 			Issuer:    service.issuer,
 		},
 		UserID: userID,
@@ -50,5 +50,9 @@ func (service *jwtAuthenticationService) GenerateJwt(userID uint64) (string, err
 }
 
 func (service *jwtAuthenticationService) GetAuthenticatedUserDataFromContext(context context.Context) *UserAuthentication {
-	return context.Value(userContextKey).(*UserAuthentication)
+	if userAuthenticationData, ok := context.Value(userContextKey).(*UserAuthentication); ok {
+		return userAuthenticationData
+	}
+	log.Println("User authentication data not found in request context")
+	return nil
 }

@@ -38,7 +38,7 @@ func AuthenticationMiddleware(jwtSigningKey string) func(http.Handler) http.Hand
 				return
 			}
 
-			ctx := context.WithValue(request.Context(), userContextKey, UserAuthentication{UserId: userClaims.UserID})
+			ctx := context.WithValue(request.Context(), userContextKey, &UserAuthentication{UserId: userClaims.UserID})
 			request = request.WithContext(ctx)
 
 			nextHandler.ServeHTTP(writer, request)
