@@ -30,7 +30,7 @@ const SignIn = ({signInCallback}) => {
   });
 
   useEffect(() => {
-    if (location.state && location.state.email) {
+    if (location.state?.email) {
       setEmail(location.state.email);
       setNotifications(['You are signed up!']);
     }
