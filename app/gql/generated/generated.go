@@ -45,6 +45,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Mutation struct {
 		CreatePassword func(childComplexity int, input model.NewPassword) int
+		DeletePassword func(childComplexity int, input string) int
 		SignIn         func(childComplexity int, input model.UserSignIn) int
 		SignUp         func(childComplexity int, input model.NewUser) int
 		UpdatePassword func(childComplexity int, input model.UpdatePassword) int
@@ -78,6 +79,7 @@ type MutationResolver interface {
 	SignIn(ctx context.Context, input model.UserSignIn) (*model.UserWithToken, error)
 	CreatePassword(ctx context.Context, input model.NewPassword) (*model.Password, error)
 	UpdatePassword(ctx context.Context, input model.UpdatePassword) (*model.Password, error)
+	DeletePassword(ctx context.Context, input string) (bool, error)
 }
 type QueryResolver interface {
 	QueryUserPasswords(ctx context.Context, userID string) ([]*model.Password, error)
@@ -109,6 +111,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreatePassword(childComplexity, args["input"].(model.NewPassword)), true
+
+	case "Mutation.deletePassword":
+		if e.complexity.Mutation.DeletePassword == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deletePassword_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeletePassword(childComplexity, args["input"].(string)), true
 
 	case "Mutation.signIn":
 		if e.complexity.Mutation.SignIn == nil {
@@ -332,6 +346,7 @@ type Mutation {
   signIn(input: UserSignIn!): UserWithToken!
   createPassword(input: NewPassword!): Password!
   updatePassword(input: UpdatePassword!): Password!
+  deletePassword(input: String!): Boolean!
 }
 
 type Query {
@@ -352,6 +367,21 @@ func (ec *executionContext) field_Mutation_createPassword_args(ctx context.Conte
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNNewPassword2githubᚗcomᚋKristijanFaustᚋgokeeperᚋappᚋgqlᚋmodelᚐNewPassword(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deletePassword_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -639,6 +669,48 @@ func (ec *executionContext) _Mutation_updatePassword(ctx context.Context, field 
 	res := resTmp.(*model.Password)
 	fc.Result = res
 	return ec.marshalNPassword2ᚖgithubᚗcomᚋKristijanFaustᚋgokeeperᚋappᚋgqlᚋmodelᚐPassword(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deletePassword(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deletePassword_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeletePassword(rctx, args["input"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Password_id(ctx context.Context, field graphql.CollectedField, obj *model.Password) (ret graphql.Marshaler) {
@@ -2340,6 +2412,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "updatePassword":
 			out.Values[i] = ec._Mutation_updatePassword(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deletePassword":
+			out.Values[i] = ec._Mutation_deletePassword(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

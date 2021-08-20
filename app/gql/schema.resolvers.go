@@ -162,6 +162,33 @@ func (r *mutationResolver) UpdatePassword(ctx context.Context, input model.Updat
 	return &model.Password{ID: input.ID, UserID: input.UserID, Name: input.Name, Password: input.Password}, nil
 }
 
+func (r *mutationResolver) DeletePassword(ctx context.Context, input string) (bool, error) {
+	passwordId, err := strconv.ParseUint(input, 10, 64)
+	if err != nil {
+		log.Printf("Error occurred while converting password id to uint64: %s", err)
+		return false, gqlerror.Errorf(passwordDeleteErrorMessage)
+	}
+
+	userAuthentication := r.authenticationService.GetAuthenticatedUserDataFromContext(ctx)
+	userPassword := &databaseModel.Password{}
+	err = r.passwordRepository.FetchPasswordById(userPassword, passwordId)
+	if err != nil {
+		log.Printf("Error occurred while fetching user password by id: %s", err)
+		return false, gqlerror.Errorf(passwordDeleteErrorMessage)
+	}
+	if userAuthentication == nil || userPassword.UserId != userAuthentication.UserId {
+		return false, gqlerror.Errorf(passwordAuthenticationErrorMessage)
+	}
+
+	err = r.passwordRepository.DeletePasswordById(passwordId)
+	if err != nil {
+		log.Printf("Error while updating user password: %s", err)
+		return false, gqlerror.Errorf(passwordDeleteErrorMessage)
+	}
+
+	return true, nil
+}
+
 func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) ([]*model.Password, error) {
 	userId, err := strconv.ParseUint(userID, 10, 64)
 	if err != nil {

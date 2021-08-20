@@ -11,6 +11,7 @@ const (
 	userCreationErrorMessage                = "could not create a new user"
 	passwordCreationErrorMessage            = "could not create a new password"
 	passwordUpdateErrorMessage              = "could not update password"
+	passwordDeleteErrorMessage              = "could not delete password"
 	passwordAuthenticationErrorMessage      = "unauthorized password input"
 	userPasswordsFetchErrorMessage          = "could not fetch user's passwords"
 	userPasswordsAuthenticationErrorMessage = "unauthorized passwords fetch"

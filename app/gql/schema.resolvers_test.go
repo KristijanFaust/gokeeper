@@ -477,6 +477,95 @@ func (suite *schemaResolverTestSuite) TestUpdatePasswordWithUpdateError() {
 	assert.Nil(suite.T(), password, "Should not return any password data")
 }
 
+// DeletePassword should successfully delete a user password
+func (suite *schemaResolverTestSuite) TestDeletePassword() {
+	input := mockutil.DefaultIdAsString
+
+	result, err := suite.mutationResolver.DeletePassword(context.Background(), input)
+	assert.Nil(suite.T(), err, "Password should be deleted without errors")
+
+	assert.Equal(suite.T(), result, true)
+}
+
+// DeletePassword should return expected error when password id is of an unexpected value
+func (suite *schemaResolverTestSuite) TestDeletePasswordWithUnexpectedPasswordIdValue() {
+	input := "invalid"
+
+	result, err := suite.mutationResolver.DeletePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not delete password"),
+		"Should return expected error when user id is of an unexpected value",
+	)
+	assert.Equal(suite.T(), result, false)
+}
+
+// DeletePassword should return expected error when user target password fetch fails
+func (suite *schemaResolverTestSuite) TestDeletePasswordWithTargetPasswordFetchError() {
+	input := mockutil.DefaultIdAsString
+	passwordRepositoryServiceMock := new(mockutil.PasswordRepositoryServiceMock)
+	passwordRepositoryServiceMock.On("FetchPasswordById", mock.Anything, mock.Anything).Return(
+		errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.passwordRepository = passwordRepositoryServiceMock
+
+	result, err := suite.mutationResolver.DeletePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not delete password"),
+		"Should return expected error when request is not authorized",
+	)
+	assert.Equal(suite.T(), result, false)
+}
+
+// DeletePassword should return expected error when request is not authenticated
+func (suite *schemaResolverTestSuite) TestDeletePasswordUnauthenticated() {
+	input := mockutil.DefaultIdAsString
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(nil).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+
+	result, err := suite.mutationResolver.DeletePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("unauthorized password input"),
+		"Should return expected error when request is not authorized",
+	)
+	assert.Equal(suite.T(), result, false)
+}
+
+// DeletePassword should return expected error when request authentication is invalid
+func (suite *schemaResolverTestSuite) TestDeletePasswordWithInvalidAuthentication() {
+	input := mockutil.DefaultIdAsString
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(
+		&authentication.UserAuthentication{UserId: uint64(2)},
+	).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+
+	result, err := suite.mutationResolver.DeletePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("unauthorized password input"),
+		"Should return expected error when request is not authorized",
+	)
+	assert.Equal(suite.T(), result, false)
+}
+
+// DeletePassword should return expected error when deleting password from database fails
+func (suite *schemaResolverTestSuite) TestDeletePasswordWithUpdateError() {
+	passwordRepositoryServiceMock := new(mockutil.PasswordRepositoryServiceMock)
+	passwordRepositoryServiceMock.On("FetchPasswordById", mock.Anything, mock.Anything).Return(nil).Times(1)
+	passwordRepositoryServiceMock.On("DeletePasswordById", mock.Anything).Return(
+		errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.passwordRepository = passwordRepositoryServiceMock
+	input := mockutil.DefaultIdAsString
+
+	result, err := suite.mutationResolver.DeletePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not delete password"),
+		"Should return expected error when insert to database fails",
+	)
+	assert.Equal(suite.T(), result, false)
+}
+
 // QueryUserPasswords should successfully query for all user's passwords
 func (suite *schemaResolverTestSuite) TestQueryUserPasswords() {
 	passwordSecurityServiceMock := new(mockutil.PasswordSecurityServiceMock)

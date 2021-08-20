@@ -9,6 +9,7 @@ import (
 type PasswordRepository interface {
 	InsertNewPassword(password *model.Password) (db.InsertResult, error)
 	UpdatePasswordById(name string, password []byte, passwordId uint64) error
+	DeletePasswordById(passwordId uint64) error
 	FetchPasswordById(password *model.Password, passwordId uint64) error
 	FetchAllByUserId(passwords *model.Passwords, userId uint64, queryFields []string) error
 }
@@ -32,6 +33,12 @@ func (repository *passwordRepositoryService) InsertNewPassword(password *model.P
 func (repository *passwordRepositoryService) UpdatePasswordById(name string, password []byte, passwordId uint64) error {
 	update := (*repository.session).SQL().Update("password").Set("name", name, "password", password).Where("id = ?", passwordId)
 	_, err := update.Exec()
+	return err
+}
+
+func (repository *passwordRepositoryService) DeletePasswordById(passwordId uint64) error {
+	delete := (*repository.session).SQL().DeleteFrom("password").Where("id = ?", passwordId)
+	_, err := delete.Exec()
 	return err
 }
 

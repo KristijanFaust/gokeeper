@@ -25,6 +25,11 @@ func (service *PasswordRepositoryServiceMock) UpdatePasswordById(name string, pa
 	return arguments.Error(0)
 }
 
+func (service *PasswordRepositoryServiceMock) DeletePasswordById(passwordId uint64) error {
+	arguments := service.Called(passwordId)
+	return arguments.Error(0)
+}
+
 func (service *PasswordRepositoryServiceMock) FetchPasswordById(password *model.Password, passwordId uint64) error {
 	arguments := service.Called(password, passwordId)
 
@@ -55,6 +60,7 @@ func DefaultPasswordRepositoryServiceMock() *PasswordRepositoryServiceMock {
 	serviceMock := new(PasswordRepositoryServiceMock)
 	serviceMock.On("InsertNewPassword", mock.Anything).Return(db.NewInsertResult(int64(1)), nil).Times(1)
 	serviceMock.On("UpdatePasswordById", mock.Anything, mock.Anything, mock.Anything).Return(nil).Times(1)
+	serviceMock.On("DeletePasswordById", mock.Anything).Return(nil).Times(1)
 	serviceMock.On("FetchPasswordById", mock.Anything, mock.Anything).Return(nil).Times(1)
 	serviceMock.On("FetchAllByUserId", mock.Anything, mock.Anything, mock.Anything).Return(nil).Times(1)
 

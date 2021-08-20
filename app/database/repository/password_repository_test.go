@@ -86,6 +86,25 @@ func (suite *PasswordTestSuite) TestUpdatePasswordById() {
 	assert.Equal(suite.T(), updatedUserPassword.Password, []byte("updatedPassword"))
 }
 
+// DeletePasswordById should successfully delete a password record
+func (suite *PasswordTestSuite) TestDeletePasswordById() {
+	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
+		suite.T().Skip("Skipping test since database container is not ready")
+	}
+
+	user := &model.User{Email: "testDeletePassword@test.com", Username: "testDeletePassword", Password: []byte("testDeletePassword")}
+	userId, _ := suite.userRepository.InsertNewUser(user)
+
+	newUserPassword := &model.Password{UserId: uint64(userId.ID().(int64)), Name: "SomeApplication", Password: []byte("password")}
+	passwordId, _ := suite.passwordRepository.InsertNewPassword(newUserPassword)
+
+	suite.passwordRepository.DeletePasswordById(uint64(passwordId.ID().(int64)))
+
+	userPassword := model.Password{}
+	_ = (*suite.session).Collection("password").Find("id", passwordId).One(&newUserPassword)
+	assert.Equal(suite.T(), userPassword, model.Password{})
+}
+
 // FetchPasswordById should fetch user password by id
 func (suite *PasswordTestSuite) TestFetchPasswordById() {
 	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
