@@ -48,7 +48,6 @@ func (suite *UserRepositoryTestSuite) TestInsertNewUser() {
 
 	insertedUser := model.User{}
 	err = (*suite.session).Collection("user").Find("id", newUserInsertResult).One(&insertedUser)
-	assert.Nil(suite.T(), err)
 
 	assert.Equal(suite.T(), insertedUser.Id, uint64(newUserInsertResult.ID().(int64)))
 	assert.Equal(suite.T(), insertedUser.Email, newUser.Email)
@@ -65,7 +64,6 @@ func (suite *UserRepositoryTestSuite) TestFetchByEmail() {
 	newUser := &model.User{Email: "testFetchUsername@test.com", Username: "testFetchUsername", Password: []byte("testFetchPassword")}
 
 	newUserInsertResult, err := suite.userRepository.InsertNewUser(newUser)
-	assert.Nil(suite.T(), err)
 
 	targetUser := &model.User{}
 	err = suite.userRepository.FetchByEmail(targetUser, newUser.Email, nil)
@@ -86,7 +84,6 @@ func (suite *UserRepositoryTestSuite) TestFetchByEmailWithSpecificFields() {
 	newUser := &model.User{Email: "testSpecificFieldsFetching@test.com", Username: "testFetchUsername", Password: []byte("testFetchPassword")}
 
 	_, err := suite.userRepository.InsertNewUser(newUser)
-	assert.Nil(suite.T(), err)
 
 	targetUser := &model.User{}
 	err = suite.userRepository.FetchByEmail(targetUser, newUser.Email, []string{"username"})
@@ -107,7 +104,6 @@ func (suite *UserRepositoryTestSuite) TestFetchMasterPasswordByUserId() {
 	newUser := &model.User{Email: "testFetchPassword@test.com", Username: "testFetchPassword", Password: []byte("testFetchPassword")}
 
 	newUserInsertResult, err := suite.userRepository.InsertNewUser(newUser)
-	assert.Nil(suite.T(), err)
 
 	targetUser := &model.User{}
 	err = suite.userRepository.FetchMasterPasswordByUserId(targetUser, uint64(newUserInsertResult.ID().(int64)))

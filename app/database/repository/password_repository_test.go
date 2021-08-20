@@ -46,7 +46,6 @@ func (suite *PasswordTestSuite) TestInsertNewPassword() {
 
 	user := &model.User{Email: "testInsertPassword@test.com", Username: "testInsertPassword", Password: []byte("testInsertPassword")}
 	userId, err := suite.userRepository.InsertNewUser(user)
-	assert.Nil(suite.T(), err)
 
 	var newUserPassword = &model.Password{UserId: uint64(userId.ID().(int64)), Name: "SomeApplication", Password: []byte("password")}
 	passwordId, err := suite.passwordRepository.InsertNewPassword(newUserPassword)
@@ -54,7 +53,6 @@ func (suite *PasswordTestSuite) TestInsertNewPassword() {
 
 	insertedUserPassword := model.Password{}
 	err = (*suite.session).Collection("password").Find("id", passwordId).One(&insertedUserPassword)
-	assert.Nil(suite.T(), err)
 
 	assert.Equal(suite.T(), insertedUserPassword.Id, uint64(passwordId.ID().(int64)))
 	assert.Equal(suite.T(), insertedUserPassword.UserId, newUserPassword.UserId)
@@ -135,30 +133,24 @@ func (suite *PasswordTestSuite) TestFetchAllByUserId() {
 
 	testUser := &model.User{Email: "testFetchPasswords@test.com", Username: "testFetchPasswords", Password: []byte("testFetchPassword")}
 	testUserId, err := suite.userRepository.InsertNewUser(testUser)
-	assert.Nil(suite.T(), err)
 
 	testUserPassword1 := &model.Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication1", Password: []byte("password1")}
 	passwordId1, err := suite.passwordRepository.InsertNewPassword(testUserPassword1)
-	assert.Nil(suite.T(), err)
 
 	testUserPassword2 := &model.Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication2", Password: []byte("password2")}
 	passwordId2, err := suite.passwordRepository.InsertNewPassword(testUserPassword2)
-	assert.Nil(suite.T(), err)
 
 	additionalUser := &model.User{Email: "additionalUser@test.com", Username: "additionalUser", Password: []byte("additionalUser")}
 	additionalUserId, err := suite.userRepository.InsertNewUser(additionalUser)
-	assert.Nil(suite.T(), err)
 
 	additionalUserPassword := &model.Password{UserId: uint64(additionalUserId.ID().(int64)), Name: "SomeApplication", Password: []byte("password")}
 	_, err = suite.passwordRepository.InsertNewPassword(additionalUserPassword)
-	assert.Nil(suite.T(), err)
 
 	testUserPasswords := model.Passwords{}
 	err = suite.passwordRepository.FetchAllByUserId(&testUserPasswords, uint64(testUserId.ID().(int64)), nil)
 	assert.Nil(suite.T(), err)
 
 	assert.Equal(suite.T(), len(testUserPasswords), 2, "Should fetch exactly two passwords")
-
 	assert.Equal(suite.T(), testUserPasswords[0].Id, uint64(passwordId1.ID().(int64)))
 	assert.Equal(suite.T(), testUserPasswords[1].Id, uint64(passwordId2.ID().(int64)))
 	assert.Equal(suite.T(), testUserPasswords[0].UserId, testUserPasswords[1].UserId, "The passwords should belong to the same user")
@@ -176,11 +168,9 @@ func (suite *PasswordTestSuite) TestFetchAllByUserIdWithSpecificFields() {
 
 	testUser := &model.User{Email: "testSpecificFieldsFetch@test.com", Username: "testFetchPasswords", Password: []byte("testFetchPassword")}
 	testUserId, err := suite.userRepository.InsertNewUser(testUser)
-	assert.Nil(suite.T(), err)
 
 	testUserPassword := &model.Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication", Password: []byte("password")}
 	passwordId, err := suite.passwordRepository.InsertNewPassword(testUserPassword)
-	assert.Nil(suite.T(), err)
 
 	testUserPasswords := model.Passwords{}
 	err = suite.passwordRepository.FetchAllByUserId(&testUserPasswords, uint64(testUserId.ID().(int64)), []string{"id", "password"})
