@@ -47,6 +47,30 @@ func (r *mutationResolver) SignUp(ctx context.Context, input model.NewUser) (*mo
 	return insertedUser, nil
 }
 
+func (r *mutationResolver) SignIn(ctx context.Context, input model.UserSignIn) (*model.UserWithToken, error) {
+	fetchedUser := databaseModel.User{}
+	err := r.userRepository.FetchByEmail(&fetchedUser, input.Email, nil)
+	if err != nil {
+		if strings.Contains(err.Error(), "upper: no more rows in this result set") {
+			return nil, gqlerror.Errorf(queryNonExistingEmailErrorMessage)
+		}
+		return nil, gqlerror.Errorf(signInErrorMessage)
+	}
+
+	if subtle.ConstantTimeCompare(r.passwordSecurityService.HashWithArgon2id(input.Password), fetchedUser.Password) == 0 {
+		return nil, gqlerror.Errorf(wrongPasswordErrorMessage)
+	}
+
+	jwt, err := r.authenticationService.GenerateJwt(fetchedUser.Id)
+	if err != nil {
+		return nil, gqlerror.Errorf(signInErrorMessage)
+	}
+
+	user := &model.User{ID: strconv.FormatUint(fetchedUser.Id, 10), Email: fetchedUser.Email, Username: fetchedUser.Username}
+
+	return &model.UserWithToken{User: user, Token: jwt}, nil
+}
+
 func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPassword) (*model.Password, error) {
 	validationErrors := manageValidationsErrors(r.validator.Struct(input), ctx)
 	if validationErrors != nil {
@@ -61,7 +85,7 @@ func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPa
 
 	userAuthentication := r.authenticationService.GetAuthenticatedUserDataFromContext(ctx)
 	if userAuthentication == nil || userAuthentication.UserId != userId {
-		return nil, gqlerror.Errorf(passwordCreationAuthenticationErrorMessage)
+		return nil, gqlerror.Errorf(passwordAuthenticationErrorMessage)
 	}
 
 	user := databaseModel.User{}
@@ -93,28 +117,49 @@ func (r *mutationResolver) CreatePassword(ctx context.Context, input model.NewPa
 	return insertedPassword, nil
 }
 
-func (r *mutationResolver) SignIn(ctx context.Context, input model.UserSignIn) (*model.UserWithToken, error) {
-	fetchedUser := databaseModel.User{}
-	err := r.userRepository.FetchByEmail(&fetchedUser, input.Email, nil)
+func (r *mutationResolver) UpdatePassword(ctx context.Context, input model.UpdatePassword) (*model.Password, error) {
+	validationErrors := manageValidationsErrors(r.validator.Struct(input), ctx)
+	if validationErrors != nil {
+		return nil, gqlerror.Errorf("validation error/s on password input")
+	}
+
+	passwordId, err := strconv.ParseUint(input.ID, 10, 64)
 	if err != nil {
-		if strings.Contains(err.Error(), "upper: no more rows in this result set") {
-			return nil, gqlerror.Errorf(queryNonExistingEmailErrorMessage)
-		}
-		return nil, gqlerror.Errorf(signInErrorMessage)
+		log.Printf("Error occurred while converting password id to uint64: %s", err)
+		return nil, gqlerror.Errorf(passwordUpdateErrorMessage)
 	}
 
-	if subtle.ConstantTimeCompare(r.passwordSecurityService.HashWithArgon2id(input.Password), fetchedUser.Password) == 0 {
-		return nil, gqlerror.Errorf(wrongPasswordErrorMessage)
-	}
-
-	jwt, err := r.authenticationService.GenerateJwt(fetchedUser.Id)
+	userAuthentication := r.authenticationService.GetAuthenticatedUserDataFromContext(ctx)
+	userPassword := &databaseModel.Password{}
+	err = r.passwordRepository.FetchPasswordById(userPassword, passwordId)
 	if err != nil {
-		return nil, gqlerror.Errorf(signInErrorMessage)
+		log.Printf("Error occurred while fetching user password by id: %s", err)
+		return nil, gqlerror.Errorf(passwordUpdateErrorMessage)
+	}
+	if userAuthentication == nil || userPassword.UserId != userAuthentication.UserId {
+		return nil, gqlerror.Errorf(passwordAuthenticationErrorMessage)
 	}
 
-	user := &model.User{ID: strconv.FormatUint(fetchedUser.Id, 10), Email: fetchedUser.Email, Username: fetchedUser.Username}
+	user := databaseModel.User{}
+	err = r.userRepository.FetchMasterPasswordByUserId(&user, userAuthentication.UserId)
+	if err != nil {
+		log.Printf("Error while fetching user master password: %s", err)
+		return nil, gqlerror.Errorf(passwordUpdateErrorMessage)
+	}
 
-	return &model.UserWithToken{User: user, Token: jwt}, nil
+	encryptedPassword, err := r.passwordSecurityService.EncryptWithAes(input.Password, user.Password)
+	if err != nil {
+		log.Printf("Error while encrypting user password: %s", err)
+		return nil, gqlerror.Errorf(passwordUpdateErrorMessage)
+	}
+
+	err = r.passwordRepository.UpdatePasswordById(input.Name, encryptedPassword, passwordId)
+	if err != nil {
+		log.Printf("Error while updating user password: %s", err)
+		return nil, gqlerror.Errorf(passwordUpdateErrorMessage)
+	}
+
+	return &model.Password{ID: input.ID, UserID: input.UserID, Name: input.Name, Password: input.Password}, nil
 }
 
 func (r *queryResolver) QueryUserPasswords(ctx context.Context, userID string) ([]*model.Password, error) {

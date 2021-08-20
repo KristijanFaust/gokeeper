@@ -97,127 +97,6 @@ func (suite *schemaResolverTestSuite) TestSignUpWithInsertError() {
 	assert.Nil(suite.T(), user, "Should not return any user data")
 }
 
-// CreatePassword should successfully create a new user password
-func (suite *schemaResolverTestSuite) TestCreatePassword() {
-	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
-
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
-	assert.Nil(suite.T(), err, "Password should be created without errors")
-
-	assert.Equal(suite.T(), password.ID, mockutil.DefaultIdAsString)
-	assert.Equal(suite.T(), password.UserID, mockutil.DefaultIdAsString)
-	assert.Equal(suite.T(), password.Name, input.Name)
-	assert.Equal(suite.T(), password.Password, input.Password)
-}
-
-// CreatePassword should return error on failed input validation
-func (suite *schemaResolverTestSuite) TestCreatePasswordValidation() {
-	input := model.NewPassword{UserID: "", Name: "", Password: ""}
-	ctx := graphql.WithResponseContext(context.Background(), graphql.DefaultErrorPresenter, graphql.DefaultRecover)
-
-	password, err := suite.mutationResolver.CreatePassword(ctx, input)
-	assert.Equal(
-		suite.T(), err, gqlerror.Errorf("validation error/s on password input"),
-		"Should return expected error when input validation for new user fails",
-	)
-	assert.Nil(suite.T(), password, "Should not return any user data")
-}
-
-// CreatePassword should return expected error when userId is of an unexpected value
-func (suite *schemaResolverTestSuite) TestCreatePasswordWithUnexpectedUserIdValue() {
-	input := model.NewPassword{UserID: "invalidId", Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
-
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
-	assert.Equal(
-		suite.T(), err, gqlerror.Errorf("could not create a new password"),
-		"Should return expected error when user id is of an unexpected value",
-	)
-	assert.Nil(suite.T(), password, "Should not return any password data")
-}
-
-// CreatePassword should return expected error when request is not authenticated
-func (suite *schemaResolverTestSuite) TestCreatePasswordUnauthenticated() {
-	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
-	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
-	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(nil).Times(1)
-	suite.resolver.authenticationService = jwtAuthenticationServiceMock
-
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
-	assert.Equal(
-		suite.T(), err, gqlerror.Errorf("unauthorized password creation"),
-		"Should return expected error when request is not authorized",
-	)
-	assert.Nil(suite.T(), password, "Should not return any password data")
-}
-
-// CreatePassword should return expected error when request authentication is invalid
-func (suite *schemaResolverTestSuite) TestCreatePasswordWithInvalidAuthentication() {
-	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
-	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
-	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(
-		&authentication.UserAuthentication{UserId: uint64(2)},
-	).Times(1)
-	suite.resolver.authenticationService = jwtAuthenticationServiceMock
-
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
-	assert.Equal(
-		suite.T(), err, gqlerror.Errorf("unauthorized password creation"),
-		"Should return expected error when request is not authorized",
-	)
-	assert.Nil(suite.T(), password, "Should not return any password data")
-}
-
-// CreatePassword should return expected error when user's master password fetch fails
-func (suite *schemaResolverTestSuite) TestCreatePasswordWithMasterPasswordFetchError() {
-	userRepositoryServiceMock := new(mockutil.UserRepositoryServiceMock)
-	userRepositoryServiceMock.On("FetchMasterPasswordByUserId", mock.Anything, mock.Anything).Return(
-		errors.New(mockutil.MockedGenericErrorMessage),
-	).Times(1)
-	suite.resolver.userRepository = userRepositoryServiceMock
-	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
-
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
-	assert.Equal(
-		suite.T(), err, gqlerror.Errorf("could not create a new password"),
-		"Should return expected error when user's master password fetch fails",
-	)
-	assert.Nil(suite.T(), password, "Should not return any password data")
-}
-
-// CreatePassword should return expected error when insert to database fails
-func (suite *schemaResolverTestSuite) TestCreatePasswordWithInsertError() {
-	passwordRepositoryServiceMock := new(mockutil.PasswordRepositoryServiceMock)
-	passwordRepositoryServiceMock.On("InsertNewPassword", mock.Anything).Return(
-		nil, errors.New(mockutil.MockedGenericErrorMessage),
-	).Times(1)
-	suite.resolver.passwordRepository = passwordRepositoryServiceMock
-	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
-
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
-	assert.Equal(
-		suite.T(), err, gqlerror.Errorf("could not create a new password"),
-		"Should return expected error when insert to database fails",
-	)
-	assert.Nil(suite.T(), password, "Should not return any password data")
-}
-
-// CreatePassword should return expected error on unsuccessful password encryption
-func (suite *schemaResolverTestSuite) TestCreatePasswordWithEncryptionError() {
-	passwordSecurityServiceMock := new(mockutil.PasswordSecurityServiceMock)
-	passwordSecurityServiceMock.On("EncryptWithAes", mock.Anything, mock.Anything).Return(
-		nil, errors.New(mockutil.MockedGenericErrorMessage),
-	).Times(1)
-	suite.resolver.passwordSecurityService = passwordSecurityServiceMock
-	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
-
-	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
-	assert.Equal(
-		suite.T(), err, gqlerror.Errorf("could not create a new password"),
-		"Should return expected error when password encryption fails",
-	)
-	assert.Nil(suite.T(), password, "Should not return any password data")
-}
-
 // SignIn should successfully sign in a user
 func (suite *schemaResolverTestSuite) TestSignIn() {
 	input := model.UserSignIn{Email: mockutil.DefaultEmail, Password: mockutil.DefaultPassword}
@@ -298,6 +177,306 @@ func (suite *schemaResolverTestSuite) TestSignInWithGenerateJwtError() {
 	assert.Nil(suite.T(), token, "Token should not be generated")
 }
 
+// CreatePassword should successfully create a new user password
+func (suite *schemaResolverTestSuite) TestCreatePassword() {
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
+
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
+	assert.Nil(suite.T(), err, "Password should be created without errors")
+
+	assert.Equal(suite.T(), password.ID, mockutil.DefaultIdAsString)
+	assert.Equal(suite.T(), password.UserID, mockutil.DefaultIdAsString)
+	assert.Equal(suite.T(), password.Name, input.Name)
+	assert.Equal(suite.T(), password.Password, input.Password)
+}
+
+// CreatePassword should return error on failed input validation
+func (suite *schemaResolverTestSuite) TestCreatePasswordValidation() {
+	input := model.NewPassword{UserID: "", Name: "", Password: ""}
+	ctx := graphql.WithResponseContext(context.Background(), graphql.DefaultErrorPresenter, graphql.DefaultRecover)
+
+	password, err := suite.mutationResolver.CreatePassword(ctx, input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("validation error/s on password input"),
+		"Should return expected error when input validation for new user fails",
+	)
+	assert.Nil(suite.T(), password, "Should not return any user data")
+}
+
+// CreatePassword should return expected error when userId is of an unexpected value
+func (suite *schemaResolverTestSuite) TestCreatePasswordWithUnexpectedUserIdValue() {
+	input := model.NewPassword{UserID: "invalidId", Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
+
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not create a new password"),
+		"Should return expected error when user id is of an unexpected value",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// CreatePassword should return expected error when request is not authenticated
+func (suite *schemaResolverTestSuite) TestCreatePasswordUnauthenticated() {
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(nil).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("unauthorized password input"),
+		"Should return expected error when request is not authorized",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// CreatePassword should return expected error when request authentication is invalid
+func (suite *schemaResolverTestSuite) TestCreatePasswordWithInvalidAuthentication() {
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(
+		&authentication.UserAuthentication{UserId: uint64(2)},
+	).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("unauthorized password input"),
+		"Should return expected error when request is not authorized",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// CreatePassword should return expected error when user's master password fetch fails
+func (suite *schemaResolverTestSuite) TestCreatePasswordWithMasterPasswordFetchError() {
+	userRepositoryServiceMock := new(mockutil.UserRepositoryServiceMock)
+	userRepositoryServiceMock.On("FetchMasterPasswordByUserId", mock.Anything, mock.Anything).Return(
+		errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.userRepository = userRepositoryServiceMock
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
+
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not create a new password"),
+		"Should return expected error when user's master password fetch fails",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// CreatePassword should return expected error when insert to database fails
+func (suite *schemaResolverTestSuite) TestCreatePasswordWithInsertError() {
+	passwordRepositoryServiceMock := new(mockutil.PasswordRepositoryServiceMock)
+	passwordRepositoryServiceMock.On("InsertNewPassword", mock.Anything).Return(
+		nil, errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.passwordRepository = passwordRepositoryServiceMock
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
+
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not create a new password"),
+		"Should return expected error when insert to database fails",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// CreatePassword should return expected error on unsuccessful password encryption
+func (suite *schemaResolverTestSuite) TestCreatePasswordWithEncryptionError() {
+	passwordSecurityServiceMock := new(mockutil.PasswordSecurityServiceMock)
+	passwordSecurityServiceMock.On("EncryptWithAes", mock.Anything, mock.Anything).Return(
+		nil, errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.passwordSecurityService = passwordSecurityServiceMock
+	input := model.NewPassword{UserID: mockutil.DefaultIdAsString, Name: mockutil.DefaultPasswordName, Password: mockutil.DefaultPassword}
+
+	password, err := suite.mutationResolver.CreatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not create a new password"),
+		"Should return expected error when password encryption fails",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// UpdatePassword should successfully update a user password
+func (suite *schemaResolverTestSuite) TestUpdatePassword() {
+	input := model.UpdatePassword{
+		ID:       mockutil.DefaultIdAsString,
+		UserID:   mockutil.DefaultIdAsString,
+		Name:     mockutil.DefaultPasswordName,
+		Password: mockutil.DefaultPassword,
+	}
+
+	password, err := suite.mutationResolver.UpdatePassword(context.Background(), input)
+	assert.Nil(suite.T(), err, "Password should be updated without errors")
+
+	assert.Equal(suite.T(), password.ID, input.ID)
+	assert.Equal(suite.T(), password.UserID, input.UserID)
+	assert.Equal(suite.T(), password.Name, input.Name)
+	assert.Equal(suite.T(), password.Password, input.Password)
+}
+
+// UpdatePassword should return error on failed input validation
+func (suite *schemaResolverTestSuite) TestUpdatePasswordValidation() {
+	input := model.UpdatePassword{ID: "", UserID: "", Name: "", Password: ""}
+	ctx := graphql.WithResponseContext(context.Background(), graphql.DefaultErrorPresenter, graphql.DefaultRecover)
+
+	password, err := suite.mutationResolver.UpdatePassword(ctx, input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("validation error/s on password input"),
+		"Should return expected error when input validation for new user fails",
+	)
+	assert.Nil(suite.T(), password, "Should not return any user data")
+}
+
+// UpdatePassword should return expected error when password id is of an unexpected value
+func (suite *schemaResolverTestSuite) TestUpdatePasswordWithUnexpectedPasswordIdValue() {
+	input := model.UpdatePassword{
+		ID:       "inavlid",
+		UserID:   mockutil.DefaultIdAsString,
+		Name:     mockutil.DefaultPasswordName,
+		Password: mockutil.DefaultPassword,
+	}
+
+	password, err := suite.mutationResolver.UpdatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not update password"),
+		"Should return expected error when user id is of an unexpected value",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// UpdatePassword should return expected error when user target password fetch fails
+func (suite *schemaResolverTestSuite) TestUpdatePasswordWithTargetPasswordFetchError() {
+	input := model.UpdatePassword{
+		ID:       mockutil.DefaultIdAsString,
+		UserID:   mockutil.DefaultIdAsString,
+		Name:     mockutil.DefaultPasswordName,
+		Password: mockutil.DefaultPassword,
+	}
+	passwordRepositoryServiceMock := new(mockutil.PasswordRepositoryServiceMock)
+	passwordRepositoryServiceMock.On("FetchPasswordById", mock.Anything, mock.Anything).Return(
+		errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.passwordRepository = passwordRepositoryServiceMock
+
+	password, err := suite.mutationResolver.UpdatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not update password"),
+		"Should return expected error when request is not authorized",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// UpdatePassword should return expected error when request is not authenticated
+func (suite *schemaResolverTestSuite) TestUpdatePasswordUnauthenticated() {
+	input := model.UpdatePassword{
+		ID:       mockutil.DefaultIdAsString,
+		UserID:   mockutil.DefaultIdAsString,
+		Name:     mockutil.DefaultPasswordName,
+		Password: mockutil.DefaultPassword,
+	}
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(nil).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+
+	password, err := suite.mutationResolver.UpdatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("unauthorized password input"),
+		"Should return expected error when request is not authorized",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// UpdatePassword should return expected error when request authentication is invalid
+func (suite *schemaResolverTestSuite) TestUpdatePasswordWithInvalidAuthentication() {
+	input := model.UpdatePassword{
+		ID:       mockutil.DefaultIdAsString,
+		UserID:   mockutil.DefaultIdAsString,
+		Name:     mockutil.DefaultPasswordName,
+		Password: mockutil.DefaultPassword,
+	}
+	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
+	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(
+		&authentication.UserAuthentication{UserId: uint64(2)},
+	).Times(1)
+	suite.resolver.authenticationService = jwtAuthenticationServiceMock
+
+	password, err := suite.mutationResolver.UpdatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("unauthorized password input"),
+		"Should return expected error when request is not authorized",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// UpdatePassword should return expected error when user's master password fetch fails
+func (suite *schemaResolverTestSuite) TestUpdatePasswordWithMasterPasswordFetchError() {
+	userRepositoryServiceMock := new(mockutil.UserRepositoryServiceMock)
+	userRepositoryServiceMock.On("FetchMasterPasswordByUserId", mock.Anything, mock.Anything).Return(
+		errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.userRepository = userRepositoryServiceMock
+	input := model.UpdatePassword{
+		ID:       mockutil.DefaultIdAsString,
+		UserID:   mockutil.DefaultIdAsString,
+		Name:     mockutil.DefaultPasswordName,
+		Password: mockutil.DefaultPassword,
+	}
+
+	password, err := suite.mutationResolver.UpdatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not update password"),
+		"Should return expected error when user's master password fetch fails",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// UpdatePassword should return expected error on unsuccessful password encryption
+func (suite *schemaResolverTestSuite) TestUpdatePasswordWithEncryptionError() {
+	passwordSecurityServiceMock := new(mockutil.PasswordSecurityServiceMock)
+	passwordSecurityServiceMock.On("EncryptWithAes", mock.Anything, mock.Anything).Return(
+		nil, errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.passwordSecurityService = passwordSecurityServiceMock
+	input := model.UpdatePassword{
+		ID:       mockutil.DefaultIdAsString,
+		UserID:   mockutil.DefaultIdAsString,
+		Name:     mockutil.DefaultPasswordName,
+		Password: mockutil.DefaultPassword,
+	}
+
+	password, err := suite.mutationResolver.UpdatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not update password"),
+		"Should return expected error when password encryption fails",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
+// UpdatePassword should return expected error when insert to database fails
+func (suite *schemaResolverTestSuite) TestUpdatePasswordWithUpdateError() {
+	passwordRepositoryServiceMock := new(mockutil.PasswordRepositoryServiceMock)
+	passwordRepositoryServiceMock.On("FetchPasswordById", mock.Anything, mock.Anything).Return(nil).Times(1)
+	passwordRepositoryServiceMock.On("UpdatePasswordById", mock.Anything, mock.Anything, mock.Anything).Return(
+		errors.New(mockutil.MockedGenericErrorMessage),
+	).Times(1)
+	suite.resolver.passwordRepository = passwordRepositoryServiceMock
+	input := model.UpdatePassword{
+		ID:       mockutil.DefaultIdAsString,
+		UserID:   mockutil.DefaultIdAsString,
+		Name:     mockutil.DefaultPasswordName,
+		Password: mockutil.DefaultPassword,
+	}
+
+	password, err := suite.mutationResolver.UpdatePassword(context.Background(), input)
+	assert.Equal(
+		suite.T(), err, gqlerror.Errorf("could not update password"),
+		"Should return expected error when insert to database fails",
+	)
+	assert.Nil(suite.T(), password, "Should not return any password data")
+}
+
 // QueryUserPasswords should successfully query for all user's passwords
 func (suite *schemaResolverTestSuite) TestQueryUserPasswords() {
 	passwordSecurityServiceMock := new(mockutil.PasswordSecurityServiceMock)
@@ -355,7 +534,7 @@ func (suite *schemaResolverTestSuite) TestQueryUserPasswordsUnauthenticated() {
 	assert.Nil(suite.T(), passwords, "Should not return any passwords data")
 }
 
-// CreatePassword should return expected error when request authentication is invalid
+// QueryUserPasswords should return expected error when request authentication is invalid
 func (suite *schemaResolverTestSuite) TestQueryUserPasswordsWithInvalidAuthentication() {
 	jwtAuthenticationServiceMock := new(mockutil.JwtAuthenticationServiceMock)
 	jwtAuthenticationServiceMock.On("GetAuthenticatedUserDataFromContext", mock.Anything).Return(

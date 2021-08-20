@@ -62,6 +62,52 @@ func (suite *PasswordTestSuite) TestInsertNewPassword() {
 	assert.Equal(suite.T(), insertedUserPassword.Password, newUserPassword.Password)
 }
 
+// UpdatePasswordById should successfully update a password record
+func (suite *PasswordTestSuite) TestUpdatePasswordById() {
+	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
+		suite.T().Skip("Skipping test since database container is not ready")
+	}
+
+	user := &model.User{Email: "testUpdatePassword@test.com", Username: "testInsertPassword", Password: []byte("testInsertPassword")}
+	userId, err := suite.userRepository.InsertNewUser(user)
+
+	newUserPassword := &model.Password{UserId: uint64(userId.ID().(int64)), Name: "SomeApplication", Password: []byte("password")}
+	passwordId, err := suite.passwordRepository.InsertNewPassword(newUserPassword)
+
+	suite.passwordRepository.UpdatePasswordById("UpdatedName", []byte("updatedPassword"), uint64(passwordId.ID().(int64)))
+
+	updatedUserPassword := model.Password{}
+	err = (*suite.session).Collection("password").Find("id", passwordId).One(&updatedUserPassword)
+	assert.Nil(suite.T(), err)
+
+	assert.Equal(suite.T(), updatedUserPassword.Id, uint64(passwordId.ID().(int64)))
+	assert.Equal(suite.T(), updatedUserPassword.UserId, newUserPassword.UserId)
+	assert.Equal(suite.T(), updatedUserPassword.Name, "UpdatedName")
+	assert.Equal(suite.T(), updatedUserPassword.Password, []byte("updatedPassword"))
+}
+
+// FetchPasswordById should fetch user password by id
+func (suite *PasswordTestSuite) TestFetchPasswordById() {
+	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {
+		suite.T().Skip("Skipping test since database container is not ready")
+	}
+
+	testUser := &model.User{Email: "testFetchPasswordById@test.com", Username: "testFetchPassword", Password: []byte("testFetchPassword")}
+	testUserId, err := suite.userRepository.InsertNewUser(testUser)
+
+	userPassword := &model.Password{UserId: uint64(testUserId.ID().(int64)), Name: "SomeApplication", Password: []byte("password")}
+	passwordId, err := suite.passwordRepository.InsertNewPassword(userPassword)
+
+	fetchedUserPassword := &model.Password{}
+	err = suite.passwordRepository.FetchPasswordById(fetchedUserPassword, uint64(passwordId.ID().(int64)))
+	assert.Nil(suite.T(), err)
+
+	assert.Equal(suite.T(), fetchedUserPassword.Id, uint64(passwordId.ID().(int64)))
+	assert.Equal(suite.T(), fetchedUserPassword.UserId, userPassword.UserId)
+	assert.Equal(suite.T(), fetchedUserPassword.Name, userPassword.Name)
+	assert.Equal(suite.T(), fetchedUserPassword.Password, userPassword.Password)
+}
+
 // FetchAllByUserId should successfully fetch all user's password from the database
 func (suite *PasswordTestSuite) TestFetchAllByUserId() {
 	if !suite.isDatabaseUp || !suite.isDatabaseMigrated {

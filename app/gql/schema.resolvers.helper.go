@@ -8,15 +8,16 @@ import (
 )
 
 const (
-	userCreationErrorMessage                   = "could not create a new user"
-	passwordCreationErrorMessage               = "could not create a new password"
-	passwordCreationAuthenticationErrorMessage = "unauthorized password creation"
-	userPasswordsFetchErrorMessage             = "could not fetch user's passwords"
-	userPasswordsAuthenticationErrorMessage    = "unauthorized passwords fetch"
-	signInErrorMessage                         = "could not sign in"
-	existingEmailErrorMessage                  = "the e-mail address is already taken"
-	queryNonExistingEmailErrorMessage          = "user doesn't exist"
-	wrongPasswordErrorMessage                  = "wrong password"
+	userCreationErrorMessage                = "could not create a new user"
+	passwordCreationErrorMessage            = "could not create a new password"
+	passwordUpdateErrorMessage              = "could not update password"
+	passwordAuthenticationErrorMessage      = "unauthorized password input"
+	userPasswordsFetchErrorMessage          = "could not fetch user's passwords"
+	userPasswordsAuthenticationErrorMessage = "unauthorized passwords fetch"
+	signInErrorMessage                      = "could not sign in"
+	existingEmailErrorMessage               = "the e-mail address is already taken"
+	queryNonExistingEmailErrorMessage       = "user doesn't exist"
+	wrongPasswordErrorMessage               = "wrong password"
 )
 
 func manageValidationsErrors(validationErrors error, ctx context.Context) error {
