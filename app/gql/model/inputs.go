@@ -14,7 +14,6 @@ type NewPassword struct {
 
 type UpdatePassword struct {
 	ID       string `json:"id" validate:"required"`
-	UserID   string `json:"userId" validate:"required"`
 	Name     string `json:"name" validate:"required,min=1,max=64"`
 	Password string `json:"password" validate:"required"`
 }

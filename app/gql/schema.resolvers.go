@@ -159,7 +159,7 @@ func (r *mutationResolver) UpdatePassword(ctx context.Context, input model.Updat
 		return nil, gqlerror.Errorf(passwordUpdateErrorMessage)
 	}
 
-	return &model.Password{ID: input.ID, UserID: input.UserID, Name: input.Name, Password: input.Password}, nil
+	return &model.Password{ID: input.ID, UserID: strconv.FormatUint(userPassword.UserId, 10), Name: input.Name, Password: input.Password}, nil
 }
 
 func (r *mutationResolver) DeletePassword(ctx context.Context, input string) (bool, error) {

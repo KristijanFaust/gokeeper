@@ -35,7 +35,6 @@ input NewPassword {
 
 input UpdatePassword {
   id: ID!
-  userId: ID!
   name: String!
   password: String!
 }

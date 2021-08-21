@@ -336,7 +336,6 @@ input NewPassword {
 
 input UpdatePassword {
   id: ID!
-  userId: ID!
   name: String!
   password: String!
 }
@@ -2311,14 +2310,6 @@ func (ec *executionContext) unmarshalInputUpdatePassword(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			it.ID, err = ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "userId":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
-			it.UserID, err = ec.unmarshalNID2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
