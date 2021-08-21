@@ -5,17 +5,27 @@ import {useMutation} from '@apollo/react-hooks';
 
 import FormInput from '../../../input/input.component';
 import Button from '../../../button/button.component';
+import ErrorMessage from '../../../messages/error/error-message.component';
 import updatePasswordMutation from '../../../../graphql/mutations/update-password-mutation';
+import deletePasswordMutation from '../../../../graphql/mutations/delete-password-mutation';
 
 import './password-edit.component.scss';
-import ErrorMessage from '../../../messages/error/error-message.component';
 
 const PasswordEdit = ({passwordEntry}) => {
   const [name, setName] = useState(passwordEntry.name)
   const [password, setPassword] = useState(passwordEntry.password)
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState(null);
+  const [deleted, setDeleted] = useState(false)
   const [updatePassword, {loading: updateLoading}] = useMutation(updatePasswordMutation, {
+    onError: (response) => {
+      setErrors(response.graphQLErrors.map(error => error.message));
+    }
+  });
+  const [deletePassword, {loading: deleteLoading}] = useMutation(deletePasswordMutation, {
+    onCompleted: () => {
+      setDeleted(true)
+    },
     onError: (response) => {
       setErrors(response.graphQLErrors.map(error => error.message));
     }
@@ -29,9 +39,18 @@ const PasswordEdit = ({passwordEntry}) => {
     updatePassword({variables: {passwordId: passwordEntry.id, name: name, password: password}});
   };
 
+  const deletePasswordHandler = () => {
+    const confirm = window.confirm("Delete password?");
+    if(confirm === true){
+      deletePassword({variables: {passwordId: passwordEntry.id}});
+    }
+  };
+
   const errorMessage = errors ? errors.map((error, index) => {
     return <ErrorMessage key={index}>{error}</ErrorMessage>
   }) : null;
+
+  if (deleted) return null;
 
   return (
     <div className='password-edit-container'>
@@ -45,7 +64,7 @@ const PasswordEdit = ({passwordEntry}) => {
         <Button onClick={() => updatePasswordHandler()} disabled={updateLoading ?? false}>
           <FontAwesomeIcon icon={faSave} />
         </Button>
-        <Button>
+        <Button onClick={() => deletePasswordHandler()} disabled={deleteLoading ?? false}>
           <FontAwesomeIcon icon={faTrash} />
         </Button>
       </div>

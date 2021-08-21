@@ -345,7 +345,7 @@ type Mutation {
   signIn(input: UserSignIn!): UserWithToken!
   createPassword(input: NewPassword!): Password!
   updatePassword(input: UpdatePassword!): Password!
-  deletePassword(input: String!): Boolean!
+  deletePassword(input: ID!): Boolean!
 }
 
 type Query {
@@ -380,7 +380,7 @@ func (ec *executionContext) field_Mutation_deletePassword_args(ctx context.Conte
 	var arg0 string
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}

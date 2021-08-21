@@ -44,7 +44,7 @@ type Mutation {
   signIn(input: UserSignIn!): UserWithToken!
   createPassword(input: NewPassword!): Password!
   updatePassword(input: UpdatePassword!): Password!
-  deletePassword(input: String!): Boolean!
+  deletePassword(input: ID!): Boolean!
 }
 
 type Query {
