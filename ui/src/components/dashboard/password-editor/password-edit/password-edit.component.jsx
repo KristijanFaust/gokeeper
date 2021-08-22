@@ -70,13 +70,13 @@ const PasswordEdit = ({passwordEntry, authenticationExpiredCallback}) => {
       <div className='password-edit'>
         <FormInput type='text' onChange={event => setName(event.target.value)} value={name} />
         <FormInput type={showPassword ? 'text' : 'password'} onChange={event => setPassword(event.target.value)} value={password} />
-        <Button onClick={() => togglePasswordVisibility()}>
+        <Button tooltip='Show password' onClick={() => togglePasswordVisibility()}>
           <FontAwesomeIcon icon={faEye} />
         </Button>
-        <Button onClick={() => updatePasswordHandler()} disabled={updateLoading ?? false}>
+        <Button tooltip='Save edited password' onClick={() => updatePasswordHandler()} disabled={updateLoading ?? false}>
           <FontAwesomeIcon icon={faSave} />
         </Button>
-        <Button onClick={() => deletePasswordHandler()} disabled={deleteLoading ?? false}>
+        <Button tooltip='Delete password' onClick={() => deletePasswordHandler()} disabled={deleteLoading ?? false}>
           <FontAwesomeIcon icon={faTrash} />
         </Button>
       </div>
