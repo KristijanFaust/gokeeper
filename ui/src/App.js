@@ -29,7 +29,8 @@ function App() {
     <div className='App'>
       <Header navigationLinks={navigationLinks} signOutCallback={updateAuthenticationToken} />
       <Switch>
-        <Route exact path='/' render={() => authenticationToken ? (<DashboardPage />) : (<Redirect to='/sign-in' />)} />
+        <Route exact path='/' render={() => authenticationToken ? (<DashboardPage authenticationExpiredCallback={updateAuthenticationToken}/>) :
+          (<Redirect to='/sign-in' />)} />
         <Route exact path='/sign-in' render={() => authenticationToken ?
           (<Redirect to='/' />) : (<SignInPage signInCallback={updateAuthenticationToken} />)}
         />

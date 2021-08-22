@@ -33,6 +33,8 @@ const SignIn = ({signInCallback}) => {
     if (location.state?.email) {
       setEmail(location.state.email);
       setNotifications(['You are signed up!']);
+    } else if (location.state?.authenticationExpired) {
+      setErrors(['Authentication expired.']);
     }
   }, [location]);
 

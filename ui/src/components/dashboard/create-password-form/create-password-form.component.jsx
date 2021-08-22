@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {useMutation} from '@apollo/react-hooks';
+import {useHistory} from 'react-router-dom';
 
 import Input from '../../input/input.component';
 import Button from '../../button/button.component';
@@ -8,7 +9,8 @@ import createPasswordMutation from '../../../graphql/mutations/create-password-m
 
 import './create-password-form.component.scss'
 
-const CreatePasswordForm = ({createPasswordsCallback}) => {
+const CreatePasswordForm = ({createPasswordsCallback, authenticationExpiredCallback}) => {
+  let history = useHistory();
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState(null);
@@ -19,8 +21,12 @@ const CreatePasswordForm = ({createPasswordsCallback}) => {
       createPasswordsCallback(data.createPassword);
     },
     onError: (response) => {
-      console.log(response);
       setErrors(response.graphQLErrors?.map(error => error.message));
+      if (!response.graphQLErrors?.length) {
+        localStorage.clear();
+        authenticationExpiredCallback('');
+        history.push('/sign-in', {authenticationExpired: true});
+      }
     }
   });
 

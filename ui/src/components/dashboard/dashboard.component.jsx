@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {useQuery} from '@apollo/react-hooks';
+import {useHistory} from 'react-router-dom';
 
 import Spinner from '../spinner/spinner.component';
 import ErrorMessage from '../messages/error/error-message.component';
@@ -9,7 +10,8 @@ import userPasswordsQuery from '../../graphql/queries/query-user-passwords';
 
 import './dashboard.component.scss';
 
-const Dashboard = () => {
+const Dashboard = ({authenticationExpiredCallback}) => {
+  let history = useHistory();
   const userId = localStorage.getItem('userId');
   const [passwords, setPasswords] = useState([]);
   const [errors, setErrors] = useState(null);
@@ -22,7 +24,9 @@ const Dashboard = () => {
     onError: (response) => {
       setErrors(response.graphQLErrors.map(error => error.message));
       if (!response.graphQLErrors.length) {
-        setErrors(["Server is unavailable!"])
+        localStorage.clear();
+        authenticationExpiredCallback('');
+        history.push('/sign-in', {authenticationExpired: true});
       }
     }
   })
@@ -36,7 +40,7 @@ const Dashboard = () => {
   const passwordsTitle = (passwords.length || errors != null) ? <span className='category-header'>Passwords</span> :
     <span className='category-header'>Seems like you haven't saved any passwords yet</span>;
 
-  const passwordsEditor = passwords.length ? <PasswordEditor passwords={passwords}/> : null;
+  const passwordsEditor = passwords.length ? <PasswordEditor passwords={passwords} authenticationExpiredCallback={authenticationExpiredCallback}/> : null;
 
   const errorMessage = errors ? errors.map((error, index) => {
     return <ErrorMessage key={index}>{error}</ErrorMessage>
@@ -48,7 +52,7 @@ const Dashboard = () => {
       {errorMessage}
       {passwordsEditor}
       <span className='category-header'>Add new password</span>
-      <CreatePasswordForm createPasswordsCallback={addNewPassword}/>
+      <CreatePasswordForm createPasswordsCallback={addNewPassword} authenticationExpiredCallback={authenticationExpiredCallback} />
     </div>
   );
 };

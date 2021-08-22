@@ -2,6 +2,7 @@ import {faEye, faSave, faTrash} from '@fortawesome/free-solid-svg-icons';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {useState} from 'react';
 import {useMutation} from '@apollo/react-hooks';
+import {useHistory} from 'react-router-dom';
 
 import FormInput from '../../../input/input.component';
 import Button from '../../../button/button.component';
@@ -11,7 +12,8 @@ import deletePasswordMutation from '../../../../graphql/mutations/delete-passwor
 
 import './password-edit.component.scss';
 
-const PasswordEdit = ({passwordEntry}) => {
+const PasswordEdit = ({passwordEntry, authenticationExpiredCallback}) => {
+  let history = useHistory();
   const [name, setName] = useState(passwordEntry.name)
   const [password, setPassword] = useState(passwordEntry.password)
   const [showPassword, setShowPassword] = useState(false)
@@ -20,6 +22,11 @@ const PasswordEdit = ({passwordEntry}) => {
   const [updatePassword, {loading: updateLoading}] = useMutation(updatePasswordMutation, {
     onError: (response) => {
       setErrors(response.graphQLErrors.map(error => error.message));
+      if (!response.graphQLErrors.length) {
+        localStorage.clear();
+        authenticationExpiredCallback('')
+        history.push('/sign-in', {authenticationExpired: true});
+      }
     }
   });
   const [deletePassword, {loading: deleteLoading}] = useMutation(deletePasswordMutation, {
@@ -28,6 +35,11 @@ const PasswordEdit = ({passwordEntry}) => {
     },
     onError: (response) => {
       setErrors(response.graphQLErrors.map(error => error.message));
+      if (!response.graphQLErrors.length) {
+        localStorage.clear();
+        authenticationExpiredCallback('')
+        history.push('/sign-in', {authenticationExpired: true});
+      }
     }
   });
 

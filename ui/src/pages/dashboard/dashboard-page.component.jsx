@@ -2,10 +2,10 @@ import Dashboard from '../../components/dashboard/dashboard.component';
 
 import './dashboard-page.styles.scss'
 
-const DashboardPage = () => {
+const DashboardPage = ({authenticationExpiredCallback}) => {
   return (
     <div className='dashboard-page'>
-      <Dashboard />
+      <Dashboard authenticationExpiredCallback={authenticationExpiredCallback} />
     </div>
   );
 };
