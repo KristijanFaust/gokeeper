@@ -8,16 +8,19 @@ import createPasswordMutation from '../../../graphql/mutations/create-password-m
 
 import './create-password-form.component.scss'
 
-const CreatePasswordForm = ({refetchPasswords}) => {
-  const [name, setName] = useState(null);
-  const [password, setPassword] = useState(null);
+const CreatePasswordForm = ({createPasswordsCallback}) => {
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
   const [errors, setErrors] = useState(null);
   const [createPassword, {loading}] = useMutation(createPasswordMutation, {
-    onCompleted: () => {
-      refetchPasswords();
+    onCompleted: (data) => {
+      setName('');
+      setPassword('');
+      createPasswordsCallback(data.createPassword);
     },
     onError: (response) => {
-      setErrors(response.graphQLErrors.map(error => error.message));
+      console.log(response);
+      setErrors(response.graphQLErrors?.map(error => error.message));
     }
   });
 
@@ -39,11 +42,11 @@ const CreatePasswordForm = ({refetchPasswords}) => {
       <form className='create-password-form' onSubmit={onSubmit}>
         <Input
           name='name' type='text' label='name' required
-          onChange={event => setName(event.target.value)}
+          onChange={event => setName(event.target.value)} value={name}
         />
         <Input
           name='password' type='text' label='password' required
-          onChange={event => setPassword(event.target.value)}
+          onChange={event => setPassword(event.target.value)} value={password}
         />
         {submitButton}
       </form>

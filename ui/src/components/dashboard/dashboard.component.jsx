@@ -14,19 +14,22 @@ const Dashboard = () => {
   const [passwords, setPasswords] = useState([]);
   const [errors, setErrors] = useState(null);
 
-  const {loading, refetch} = useQuery(userPasswordsQuery, {
+  const {loading} = useQuery(userPasswordsQuery, {
     variables: {userId: userId},
-    notifyOnNetworkStatusChange: true,
     onCompleted: (data) => {
       setPasswords(data.queryUserPasswords);
     },
     onError: (response) => {
       setErrors(response.graphQLErrors.map(error => error.message));
-      if (!errors) {
+      if (!response.graphQLErrors.length) {
         setErrors(["Server is unavailable!"])
       }
     }
   })
+
+  const addNewPassword = (newPassword) => {
+    setPasswords([...passwords, newPassword]);
+  };
 
   if (loading) return <div className='dashboard'><Spinner /></div>;
 
@@ -45,7 +48,7 @@ const Dashboard = () => {
       {errorMessage}
       {passwordsEditor}
       <span className='category-header'>Add new password</span>
-      <CreatePasswordForm refetchPasswords={refetch}/>
+      <CreatePasswordForm createPasswordsCallback={addNewPassword}/>
     </div>
   );
 };

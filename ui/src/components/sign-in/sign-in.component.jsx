@@ -25,7 +25,7 @@ const SignIn = ({signInCallback}) => {
       signInCallback(localStorage.getItem('authenticationToken'));
     },
     onError: (response) => {
-      setErrors(response.graphQLErrors.map(error => error.message));
+      setErrors(response.graphQLErrors?.map(error => error.message));
     }
   });
 

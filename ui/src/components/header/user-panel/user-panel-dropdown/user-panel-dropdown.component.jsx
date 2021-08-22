@@ -6,7 +6,7 @@ const signOut = (signOutCallback, setSignedOut) => {
   // Since we currently don't store anything authentication related on the backend no API mutations are needed
   localStorage.clear();
   setSignedOut(true);
-  signOutCallback(null);
+  signOutCallback('');
 };
 
 const UserPanelDropdown = ({signOutCallback}) => {
