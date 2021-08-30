@@ -1,0 +1,16 @@
+version: '3'
+services:
+  gokeeper-postgres:
+    container_name: gokeeper-postgres
+    image: postgres:13.3-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: gokeeper
+      POSTGRES_USER: gokeeperapp
+      POSTGRES_PASSWORD: FWCRDJzp4G24AA
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

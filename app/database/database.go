@@ -28,8 +28,14 @@ func InitializeDatabaseConnection(datasourceConfig *config.Datasource) *db.Sessi
 	}
 
 	session, err := postgresql.Open(settings)
-	if err != nil {
-		log.Panicf("Could not connect to database: %s", err)
+	for {
+		if err != nil {
+			log.Printf("Could not connect to database: %s - retrying connection any second", err)
+			session, err = postgresql.Open(settings)
+			time.Sleep(1 * time.Second)
+		} else {
+			break
+		}
 	}
 
 	session.SetMaxOpenConns(datasourceConfig.MaxOpenConnections)

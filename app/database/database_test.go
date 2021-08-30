@@ -46,14 +46,22 @@ func (suite *DatabaseTestSuite) TestInitializeDatabaseConnectionWithoutDatasourc
 	)
 }
 
-// InitializeDatabaseConnection should panic if connection to database cannot be established
+// InitializeDatabaseConnection should retry to connect to database indefinitely on a fixed interval
 func (suite *DatabaseTestSuite) TestInitializeDatabaseConnectionWithDatabaseConnectionError() {
+	if suite.isDatabaseUp {
+		testcontainersutil.DockerComposeDown()
+	}
 	databaseConfig := databaseutil.GenerateTestDatasourceConfiguration()
-	databaseConfig.Host = "invalid"
-	assert.PanicsWithValue(
-		suite.T(), "Could not connect to database: dial tcp: lookup invalid: Temporary failure in name resolution",
-		func() { InitializeDatabaseConnection(databaseConfig) }, "Database connection setup should panic if connection to database cannot be established",
+	var session *db.Session
+	go func() {
+		testcontainersutil.DockerComposeUp()
+	}()
+	assert.NotPanics(
+		suite.T(), func() { session = InitializeDatabaseConnection(databaseConfig) },
+		"Database connections should not panic when connection to database can't be established",
 	)
+	assert.NotNil(suite.T(), session, "Session should be set up now")
+	CloseDatabaseConnection(session)
 }
 
 // InitializeDatabaseConnection should panic if ping to database is unsuccessful

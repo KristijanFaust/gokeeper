@@ -8,7 +8,7 @@ server:
 datasource:
   user: gokeeperapp
   password: FWCRDJzp4G24AA
-  host: localhost:55432
+  host: localhost:5432
   database: gokeeper
   max-open-connections: 12
   connection-lifetime: 60

@@ -45,7 +45,7 @@ func Run(applicationConfig *config.Config, serverDoneWaitGroup *sync.WaitGroup, 
 
 	if reflect.ValueOf(applicationConfig.Profile).IsZero() || !applicationConfig.Profile.Production {
 		router.Use(cors.New(cors.Options{
-			AllowedOrigins: []string{"http://localhost:3000"},
+			AllowedOrigins: []string{"http://localhost:3000", "http://localhost:8080"},
 			AllowedHeaders: []string{"Authentication", "Content-Type"},
 		}).Handler)
 
